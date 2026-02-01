@@ -25,7 +25,7 @@ const columns: readonly Column[] = [
   { id: 'id', label: 'ID', width: 170 },
   { id: 'type', label: 'Type', width: 120 },
   { id: 'capacity', label: 'Capacity', width: 170 },
-  { id: 'size', label: 'Size', width: 170},
+  { id: 'size', label: 'Size', width: 170 },
 ];
 
 const compareValues = (a: number | string, b: number | string) => {
@@ -42,6 +42,7 @@ export default function AirplanesTableData() {
     () => Array.from(new Set(airplanes.map(a => a.type))),
     []
   );
+  const [orderDir, setOrderDir] = useState<'asc' | 'desc'>('asc');
 
   const processedRows = useMemo(() => {
     let result = airplanes.filter(row => {
@@ -55,13 +56,15 @@ export default function AirplanesTableData() {
     });
 
     if (orderBy) {
-      result = [...result].sort((a, b) =>
-        compareValues(a[orderBy], b[orderBy])
-      );
+      result = [...result].sort((a, b) => {
+        const res = compareValues(a[orderBy], b[orderBy]);
+        return orderDir === 'asc' ? res : -res;
+      });
     }
 
+
     return result;
-  }, [debouncedFilters, orderBy]);
+  }, [debouncedFilters, orderBy, orderDir]);
 
   const {
     startIndex,
@@ -103,18 +106,29 @@ export default function AirplanesTableData() {
                 {columns.map(col => (
                   <TableCell
                     key={col.id}
-                    onClick={() =>
-                      setOrderBy(prev => (prev === col.id ? null : col.id))
-                    }
+
+                    onClick={() => {
+                      if (orderBy === col.id) {
+                        setOrderDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+                      } else {
+                        setOrderBy(col.id);
+                        setOrderDir('asc');
+                      }
+                    }}
+
                     sx={columnsTextStyle}
                   >
                     {col.label}
-                    
                     <Chip
                       size="small"
-                      label={orderBy === col.id ? '▲' : '⇅'}
+                      label={
+                        orderBy === col.id
+                          ? orderDir === 'asc' ? '▲' : '▼'
+                          : '⇅'
+                      }
                       sx={chipStyle}
                     />
+
                   </TableCell>
                 ))}
               </TableRow>
