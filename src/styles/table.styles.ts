@@ -15,6 +15,8 @@ export const columnsTextStyle: SxProps<Theme> = {
   cursor: 'pointer',
   fontWeight: 600,
   userSelect: 'none',
+  minWidth: 100, 
+
 };
 
 export const chipStyle: SxProps<Theme> = {

@@ -22,10 +22,10 @@ const MAX_WINDOW = 50;
 const STEP = 20
 
 const columns: readonly Column[] = [
-  { id: 'id', label: 'ID', minWidth: 170 },
-  { id: 'type', label: 'Type', minWidth: 120 },
-  { id: 'capacity', label: 'Capacity', minWidth: 170, align: 'right' },
-  { id: 'size', label: 'Size', minWidth: 170, align: 'right' },
+  { id: 'id', label: 'ID', width: 170 },
+  { id: 'type', label: 'Type', width: 120 },
+  { id: 'capacity', label: 'Capacity', width: 170 },
+  { id: 'size', label: 'Size', width: 170},
 ];
 
 const compareValues = (a: number | string, b: number | string) => {
@@ -103,16 +103,16 @@ export default function AirplanesTableData() {
                 {columns.map(col => (
                   <TableCell
                     key={col.id}
-                    align={col.align}
                     onClick={() =>
                       setOrderBy(prev => (prev === col.id ? null : col.id))
                     }
                     sx={columnsTextStyle}
                   >
                     {col.label}
+                    
                     <Chip
                       size="small"
-                      label={orderBy === col.id ? 'sorted' : 'sort'}
+                      label={orderBy === col.id ? '▲' : '⇅'}
                       sx={chipStyle}
                     />
                   </TableCell>
@@ -134,7 +134,7 @@ export default function AirplanesTableData() {
                 renderedRows.map(row => (
                   <TableRow hover key={row.id}>
                     {columns.map(col => (
-                      <TableCell key={col.id} align={col.align}>
+                      <TableCell key={col.id}>
                         {row[col.id]}
                       </TableCell>
                     ))}
