@@ -1,7 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 
 export const paperStyle: SxProps<Theme> = {
-  height: '60vh',
+  minHeight: '60vh',
   width: '100%',
   overflow: 'hidden',
 };

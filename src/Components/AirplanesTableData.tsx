@@ -11,7 +11,7 @@ import airplanes from '../data/airplanes.json';
 import useDebounce from '../hooks/debounce';
 import FilterBar from './FilterBar';
 import { useVirtualWindow } from '../hooks/useVirtualWindow';
-import {paperStyle,tableContainerStyle,columnsTextStyle,chipStyle} from '../styles/table.styles';
+import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from '../styles/table.styles';
 import type { Filters } from '../Types/Filters';
 import type { Column } from '../Interfaces/Column';
 import type { Data } from '../Interfaces/Data';
@@ -130,15 +130,26 @@ export default function AirplanesTableData() {
                 </TableRow>
               )}
 
-              {renderedRows.map(row => (
-                <TableRow hover key={row.id}>
-                  {columns.map(col => (
-                    <TableCell key={col.id} align={col.align}>
-                      {row[col.id]}
-                    </TableCell>
-                  ))}
+              {renderedRows.length > 0 ? (
+                renderedRows.map(row => (
+                  <TableRow hover key={row.id}>
+                    {columns.map(col => (
+                      <TableCell key={col.id} align={col.align}>
+                        {row[col.id]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    align="center"
+                  >
+                    No matching airplanes found.
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
 
               {endIndex < processedRows.length && (
                 <TableRow ref={bottomRef}>
