@@ -13,8 +13,8 @@ import FilterBar from './FilterBar';
 import { useVirtualWindow } from '../hooks/useVirtualWindow';
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from '../styles/table.styles';
 import type { Filters } from '../Types/Filters';
-import type { Column } from '../Interfaces/Column';
-import type { Data } from '../Interfaces/Data';
+import type { Column } from '../Types/Column';
+import type { Data } from '../Types/Data';
 
 const ROW_HEIGHT = 48;
 const INITIAL_ROWS = 7;
@@ -44,27 +44,51 @@ export default function AirplanesTableData() {
   );
   const [orderDir, setOrderDir] = useState<'asc' | 'desc'>('asc');
 
-  const processedRows = useMemo(() => {
-    let result = airplanes.filter(row => {
-      if (debouncedFilters.id && !row.id.toLowerCase().includes(debouncedFilters.id.toLowerCase())) return false;
-      if (debouncedFilters.types?.length && !debouncedFilters.types.includes(row.type)) return false;
-      if (debouncedFilters.capacityFrom !== undefined && row.capacity < debouncedFilters.capacityFrom) return false;
-      if (debouncedFilters.capacityTo !== undefined && row.capacity > debouncedFilters.capacityTo) return false;
-      if (debouncedFilters.sizeFrom !== undefined && row.size < debouncedFilters.sizeFrom) return false;
-      if (debouncedFilters.sizeTo !== undefined && row.size > debouncedFilters.sizeTo) return false;
-      return true;
+
+  function applyFilters(rows: Data[], filters: Filters): Data[] {
+    return rows.filter(row =>
+      (!filters.id ||
+        row.id.toLowerCase().includes(filters.id.toLowerCase())) &&
+
+      (!filters.types?.length ||
+        filters.types.includes(row.type)) &&
+
+      (filters.capacityFrom === undefined ||
+        row.capacity >= filters.capacityFrom) &&
+
+      (filters.capacityTo === undefined ||
+        row.capacity <= filters.capacityTo) &&
+
+      (filters.sizeFrom === undefined ||
+        row.size >= filters.sizeFrom) &&
+
+      (filters.sizeTo === undefined ||
+        row.size <= filters.sizeTo)
+    );
+  }
+
+  function applySort(
+    rows: Data[],
+    orderBy: keyof Data | null,
+    orderDir: 'asc' | 'desc'
+  ): Data[] {
+    if (!orderBy) return rows;
+
+    return [...rows].sort((a, b) => {
+      const res = compareValues(a[orderBy], b[orderBy]);
+      return orderDir === 'asc' ? res : -res;
     });
+  }
+  const processedRows = useMemo(
+    () =>
+      applySort(
+        applyFilters(airplanes, debouncedFilters),
+        orderBy,
+        orderDir
+      ),
+    [debouncedFilters, orderBy, orderDir]
+  );
 
-    if (orderBy) {
-      result = [...result].sort((a, b) => {
-        const res = compareValues(a[orderBy], b[orderBy]);
-        return orderDir === 'asc' ? res : -res;
-      });
-    }
-
-
-    return result;
-  }, [debouncedFilters, orderBy, orderDir]);
 
   const {
     startIndex,
@@ -74,7 +98,7 @@ export default function AirplanesTableData() {
     topSpacerHeight,
     bottomSpacerHeight,
   } = useVirtualWindow({
-    total: processedRows.length,
+    total: processedRows.length ,
     rowHeight: ROW_HEIGHT,
     initial: INITIAL_ROWS,
     windowSize: MAX_WINDOW,
@@ -106,15 +130,21 @@ export default function AirplanesTableData() {
                 {columns.map(col => (
                   <TableCell
                     key={col.id}
-
                     onClick={() => {
-                      if (orderBy === col.id) {
-                        setOrderDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
-                      } else {
+                      if (orderBy !== col.id) {
                         setOrderBy(col.id);
                         setOrderDir('asc');
+                        return;
                       }
+
+                      if (orderDir === 'asc') {
+                        setOrderDir('desc');
+                        return;
+                      }
+
+                      setOrderBy(null);
                     }}
+
 
                     sx={columnsTextStyle}
                   >

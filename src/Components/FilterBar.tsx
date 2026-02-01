@@ -2,7 +2,7 @@ import { Box, Checkbox, FormControlLabel, TextField } from "@mui/material";
 import { filterBarStyle, formControlStyle } from "../styles/filterBar.styles";
 import type { Filters } from "../Types/Filters";
 import { useCallback } from "react";
-import type { FilterBarProps } from "../Interfaces/FilterBarProps";
+import type { FilterBarProps } from "../Types/FilterBarProps";
 
 
 
