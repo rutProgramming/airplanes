@@ -5,7 +5,6 @@ import { useCallback } from "react";
 import type { FilterBarProps } from "../Types/FilterBarProps";
 
 
-
 export default function FilterBar({
     filters,
     setFilters,

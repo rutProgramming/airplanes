@@ -5,9 +5,9 @@ import AirplanesTableData from './Components/AirplanesTableData'
 function App() {
   return (
     <>
-    <ThemeProvider theme={darkTheme}>
-     <AirplanesTableData/>
-     </ThemeProvider>
+      <ThemeProvider theme={darkTheme}>
+          <AirplanesTableData />
+      </ThemeProvider>
     </>
   )
 }

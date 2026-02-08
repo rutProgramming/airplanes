@@ -1,4 +1,4 @@
-export type Data ={
+export interface Data {
   id: string;
   type: string;
   capacity: number;

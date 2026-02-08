@@ -1,208 +1,176 @@
-import { useMemo, useRef, useState } from 'react';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableHead from '@mui/material/TableHead';
-import TableBody from '@mui/material/TableBody';
-import TableRow from '@mui/material/TableRow';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import Chip from '@mui/material/Chip';
-import airplanes from '../data/airplanes.json';
-import useDebounce from '../hooks/debounce';
-import FilterBar from './FilterBar';
-import { useVirtualWindow } from '../hooks/useVirtualWindow';
-import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from '../styles/table.styles';
-import type { Filters } from '../Types/Filters';
-import type { Column } from '../Types/Column';
-import type { Data } from '../Types/Data';
+import { useCallback, useEffect, useRef, useState } from "react";
+import Paper from "@mui/material/Paper";
+import Table from "@mui/material/Table";
+import TableHead from "@mui/material/TableHead";
+import TableBody from "@mui/material/TableBody";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
+
+import useDebounce from "../hooks/debounce";
+import FilterBar from "./FilterBar";
+import { useServerVirtualWindow } from "../hooks/useVirtualWindow";
+import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "../styles/table.styles";
+import type { Filters } from "../Types/Filters";
+import type { Column } from "../Types/Column";
+import type { Data } from "../Types/Data";
 
 const ROW_HEIGHT = 48;
-const INITIAL_ROWS = 7;
-const MAX_WINDOW = 50;
-const STEP = 20
+const INITIAL_LIMIT = 7;
+const PAGE_LIMIT = 20;
+const MAX_BUFFER = 50;
 
 const columns: readonly Column[] = [
-  { id: 'id', label: 'ID', width: 170 },
-  { id: 'type', label: 'Type', width: 120 },
-  { id: 'capacity', label: 'Capacity', width: 170 },
-  { id: 'size', label: 'Size', width: 170 },
+  { id: "id", label: "ID", width: 170 },
+  { id: "type", label: "Type", width: 120 },
+  { id: "capacity", label: "Capacity", width: 170 },
+  { id: "size", label: "Size", width: 170 },
 ];
-
-const compareValues = (a: number | string, b: number | string) => {
-  if (typeof a === 'number' && typeof b === 'number') return a - b;
-  return String(a).localeCompare(String(b), 'en');
-};
 
 export default function AirplanesTableData() {
   const [filters, setFilters] = useState<Filters>({});
   const debouncedFilters = useDebounce(filters);
+
   const [orderBy, setOrderBy] = useState<keyof Data | null>(null);
+  const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
+
+  const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const uniqueTypes = useMemo(
-    () => Array.from(new Set(airplanes.map(a => a.type))),
+
+  useEffect(() => {
+    fetch("/api/unique-types")
+      .then((res) => res.json())
+      .then((types) => setUniqueTypes(types ?? []))
+      .catch(console.error);
+  }, []);
+
+  const fetchAirplanes = useCallback(
+    async (
+      cursor: number,
+      direction: "up" | "down",
+      limit: number,
+      currentFilters: Filters,
+      sortField: keyof Data | null,
+      sortDir: "asc" | "desc"
+    ) => {
+      const params = new URLSearchParams({
+        cursor: String(cursor),
+        limit: String(limit),
+        direction,
+        filters: JSON.stringify(currentFilters ?? {}),
+      });
+
+      if (sortField) {
+        params.set("sortField", String(sortField));
+        params.set("sortDir", sortDir);
+      }
+
+      const res = await fetch(`/api/airplanes?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch airplanes");
+
+      const data = await res.json();
+      
+      return {
+        items: data.items ?? [],
+        hasPrev: Boolean(data.hasPrev),
+        hasMore: Boolean(data.hasMore),
+        prevCursor: data.prevCursor ?? null,
+        nextCursor: data.nextCursor ?? null,
+        total: typeof data.total === "number" ? data.total : undefined,
+      };
+    },
     []
   );
-  const [orderDir, setOrderDir] = useState<'asc' | 'desc'>('asc');
 
-
-  function applyFilters(rows: Data[], filters: Filters): Data[] {
-    return rows.filter(row =>
-      (!filters.id ||
-        row.id.toLowerCase().includes(filters.id.toLowerCase())) &&
-
-      (!filters.types?.length ||
-        filters.types.includes(row.type)) &&
-
-      (filters.capacityFrom === undefined ||
-        row.capacity >= filters.capacityFrom) &&
-
-      (filters.capacityTo === undefined ||
-        row.capacity <= filters.capacityTo) &&
-
-      (filters.sizeFrom === undefined ||
-        row.size >= filters.sizeFrom) &&
-
-      (filters.sizeTo === undefined ||
-        row.size <= filters.sizeTo)
-    );
-  }
-
-  function applySort(
-    rows: Data[],
-    orderBy: keyof Data | null,
-    orderDir: 'asc' | 'desc'
-  ): Data[] {
-    if (!orderBy) return rows;
-
-    return [...rows].sort((a, b) => {
-      const res = compareValues(a[orderBy], b[orderBy]);
-      return orderDir === 'asc' ? res : -res;
+  const { rows, loading, topRef, bottomRef, topSpacerHeight, bottomSpacerHeight } =
+    useServerVirtualWindow({
+      fetchFunction: fetchAirplanes,
+      filters: debouncedFilters,
+      sortField: orderBy,
+      sortDir: orderDir,
+      rowHeight: ROW_HEIGHT,
+      initialLimit: INITIAL_LIMIT,
+      pageLimit: PAGE_LIMIT,
+      maxBuffer: MAX_BUFFER,
+      containerRef,
     });
-  }
-  const processedRows = useMemo(
-    () =>
-      applySort(
-        applyFilters(airplanes, debouncedFilters),
-        orderBy,
-        orderDir
-      ),
-    [debouncedFilters, orderBy, orderDir]
-  );
 
-
-  const {
-    startIndex,
-    endIndex,
-    topRef,
-    bottomRef,
-    topSpacerHeight,
-    bottomSpacerHeight,
-  } = useVirtualWindow({
-    total: processedRows.length ,
-    rowHeight: ROW_HEIGHT,
-    initial: INITIAL_ROWS,
-    windowSize: MAX_WINDOW,
-    step: STEP,
-    containerRef,
-  });
-
-  const renderedRows = useMemo(
-    () => processedRows.slice(startIndex, endIndex),
-    [processedRows, startIndex, endIndex]
-  );
+  const handleHeaderClick = (columnId: keyof Data) => {
+    if (orderBy !== columnId) {
+      setOrderBy(columnId);
+      setOrderDir("asc");
+      return;
+    }
+    if (orderDir === "asc") {
+      setOrderDir("desc");
+      return;
+    }
+    setOrderBy(null);
+  };
 
   return (
     <>
-      <FilterBar
-        filters={filters}
-        setFilters={setFilters}
-        uniqueTypes={uniqueTypes}
-      />
-
+      <FilterBar filters={filters} setFilters={setFilters} uniqueTypes={uniqueTypes} />
       <Paper sx={paperStyle}>
-        <TableContainer
-          ref={containerRef}
-          sx={tableContainerStyle}
-        >
+        
+        <TableContainer ref={containerRef} sx={tableContainerStyle}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                {columns.map(col => (
-                  <TableCell
-                    key={col.id}
-                    onClick={() => {
-                      if (orderBy !== col.id) {
-                        setOrderBy(col.id);
-                        setOrderDir('asc');
-                        return;
-                      }
-
-                      if (orderDir === 'asc') {
-                        setOrderDir('desc');
-                        return;
-                      }
-
-                      setOrderBy(null);
-                    }}
-
-
-                    sx={columnsTextStyle}
-                  >
+                {columns.map((col) => (
+                  <TableCell key={col.id} onClick={() => handleHeaderClick(col.id)} sx={columnsTextStyle}>
                     {col.label}
                     <Chip
                       size="small"
-                      label={
-                        orderBy === col.id
-                          ? orderDir === 'asc' ? '▲' : '▼'
-                          : '⇅'
-                      }
+                      label={orderBy === col.id ? (orderDir === "asc" ? "▲" : "▼") : "⇅"}
                       sx={chipStyle}
                     />
-
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {startIndex > 0 && (
-                <TableRow ref={topRef}>
-                  <TableCell
-                    colSpan={columns.length}
-                    style={{ height: topSpacerHeight, padding: 0 }}
-                  />
-                </TableRow>
-              )}
+              <TableRow ref={topRef}>
+                <TableCell colSpan={columns.length} style={{ height: Math.max(1, topSpacerHeight), padding: 0 }}>
+                  {loading.up && (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <CircularProgress size={20} />
+                    </Box>
+                  )}
+                </TableCell>
+              </TableRow>
 
-              {renderedRows.length > 0 ? (
-                renderedRows.map(row => (
+              {rows.length > 0 ? (
+                rows.map((row) => (
                   <TableRow hover key={row.id}>
-                    {columns.map(col => (
-                      <TableCell key={col.id}>
-                        {row[col.id]}
-                      </TableCell>
+                    {columns.map((col) => (
+                      <TableCell key={col.id}>{row[col.id]}</TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    align="center"
-                  >
-                    No matching airplanes found.
+                  <TableCell colSpan={columns.length} align="center">
+                    {loading.down ? <CircularProgress /> : "No matching airplanes found."}
                   </TableCell>
                 </TableRow>
               )}
-
-              {endIndex < processedRows.length && (
-                <TableRow ref={bottomRef}>
-                  <TableCell
-                    colSpan={columns.length}
-                    style={{ height: bottomSpacerHeight, padding: 0 }}
-                  />
-                </TableRow>
-              )}
+              <TableRow ref={bottomRef}>
+                <TableCell
+                  colSpan={columns.length}
+                  style={{ height: Math.max(1, bottomSpacerHeight), padding: 0 }}
+                >
+                  {loading.down && (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <CircularProgress size={20} />
+                    </Box>
+                  )}
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
