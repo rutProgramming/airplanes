@@ -170,17 +170,6 @@ export function useServerVirtualWindow({
   }, [hasMore.up, loading, fetchFunction, pageLimit, filters, sortField, sortDir, containerRef]);
 
   useEffect(() => {
-    if (!isInitialLoadRef.current) {
-      setRows([]);
-      topCursorRef.current = 0;
-      bottomCursorRef.current = 0;
-      setHasMore({ up: false, down: true });
-      setTotalCount(null);
-
-      if (containerRef.current) containerRef.current.scrollTop = 0;
-      isInitialLoadRef.current = true;
-    }
-
     loadInitial();
   }, [loadInitial, containerRef]);
 
