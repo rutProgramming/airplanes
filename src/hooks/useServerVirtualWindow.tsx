@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Data } from "../Types/Data";
 import type { ServerVirtualWindowConfig } from "../Types/ServerVirtualWindowConfig";
+import { fetchAirplanesPage } from "../services/airplanes.service";
 
 
 export function useServerVirtualWindow({
-  fetchFunction,
   filters,
   sortField,
   sortDir,
@@ -39,7 +39,7 @@ export function useServerVirtualWindow({
     setLoading({ up: false, down: true });
 
     try {
-      const data = await fetchFunction(0, "down", initialLimit, filters, sortField, sortDir);
+      const data = await fetchAirplanesPage({cursor: 0,direction :"down",limit: initialLimit, filters, sortField, sortDir});
 
       setRows(data.items ?? []);
       topCursorRef.current = data.prevCursor ?? 0;
@@ -59,7 +59,7 @@ export function useServerVirtualWindow({
       setLoading({ up: false, down: false });
       isInitialLoadRef.current = false;
     }
-  }, [fetchFunction, initialLimit, filters, sortField, sortDir]);
+  }, [fetchAirplanesPage, initialLimit, filters, sortField, sortDir]);
 
   const loadMoreDown = useCallback(async () => {
     if (!hasMore.down || loading.down || loading.up) return;
@@ -67,14 +67,14 @@ export function useServerVirtualWindow({
     setLoading((p) => ({ ...p, down: true }));
 
     try {
-      const data = await fetchFunction(
-        bottomCursorRef.current,
-        "down",
-        pageLimit,
+      const data = await fetchAirplanesPage(
+       {cursor: bottomCursorRef.current,
+        direction:"down",
+        limit:pageLimit,
         filters,
         sortField,
         sortDir
-      );
+    });
 
       const items = data.items ?? [];
       if (items.length === 0) {
@@ -96,7 +96,7 @@ export function useServerVirtualWindow({
     } finally {
       setLoading((p) => ({ ...p, down: false }));
     }
-  }, [hasMore.down, loading, fetchFunction, pageLimit, filters, sortField, sortDir]);
+  }, [hasMore.down, loading, fetchAirplanesPage, pageLimit, filters, sortField, sortDir]);
 
   const loadMoreUp = useCallback(async () => {
     if (!hasMore.up || loading.up || loading.down || topCursorRef.current <= 0) return;
@@ -110,14 +110,14 @@ export function useServerVirtualWindow({
     setLoading((p) => ({ ...p, up: true }));
 
     try {
-      const data = await fetchFunction(
-        topCursorRef.current,
-        "up",
-        pageLimit,
+      const data = await fetchAirplanesPage(
+        {cursor: topCursorRef.current,
+        direction:"up",
+        limit:pageLimit,
         filters,
         sortField,
         sortDir
-      );
+     } );
 
       const items = data.items ?? [];
 
@@ -140,7 +140,7 @@ export function useServerVirtualWindow({
     } finally {
       setLoading((p) => ({ ...p, up: false }));
     }
-  }, [hasMore.up, loading, fetchFunction, pageLimit, filters, sortField, sortDir, containerRef]);
+  }, [hasMore.up, loading,fetchAirplanesPage, pageLimit, filters, sortField, sortDir, containerRef]);
 
   useEffect(() => {
     loadInitial();

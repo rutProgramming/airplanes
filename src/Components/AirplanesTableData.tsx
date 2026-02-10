@@ -17,6 +17,7 @@ import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "..
 import type { Filters } from "../Types/Filters";
 import type { Column } from "../Types/Column";
 import type { Data } from "../Types/Data";
+import { fetchUniqueTypes } from "../services/airplanes.service";
 
 const ROW_HEIGHT = 48;
 const INITIAL_LIMIT = 7;
@@ -39,52 +40,13 @@ export default function AirplanesTableData() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    fetch("/api/unique-types")
-      .then((res) => res.json())
-      .then((types) => setUniqueTypes(types ?? []))
-      .catch(console.error);
+   fetchUniqueTypes()
+    .then(setUniqueTypes)
+    .catch(console.error);
   }, []);
-
-  const fetchAirplanes = useCallback(
-    async (
-      cursor: number,
-      direction: "up" | "down",
-      limit: number,
-      currentFilters: Filters,
-      sortField: keyof Data | null,
-      sortDir: "asc" | "desc"
-    ) => {
-      const params = new URLSearchParams({
-        cursor: String(cursor),
-        limit: String(limit),
-        direction,
-        filters: JSON.stringify(currentFilters ?? {}),
-      });
-
-      if (sortField) {
-        params.set("sortField", String(sortField));
-        params.set("sortDir", sortDir);
-      }
-
-      const res = await fetch(`/api/airplanes?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch airplanes");
-
-      const data = await res.json();      
-      return {
-        items: data.items ?? [],
-        hasPrev: Boolean(data.hasPrev),
-        hasMore: Boolean(data.hasMore),
-        prevCursor: data.prevCursor ?? null,
-        nextCursor: data.nextCursor ?? null,
-        total: typeof data.total === "number" ? data.total : undefined,
-      };
-    },
-    []
-  );
 
   const { rows, loading, topRef, bottomRef, topSpacerHeight, bottomSpacerHeight } =
     useServerVirtualWindow({
-      fetchFunction: fetchAirplanes,
       filters: debouncedFilters,
       sortField: orderBy,
       sortDir: orderDir,
