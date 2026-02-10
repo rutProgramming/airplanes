@@ -1,18 +1,16 @@
-import type { Data } from "./Data";
-import type { Filters } from "./Filters";
-type Dir = "up" | "down";
-
+import type { Data } from "../Types/Data";
+import type { Filters } from "../Types/Filters";
 export interface ServerVirtualWindowConfig {
   fetchFunction: (
     cursor: number,
-    direction: Dir,
+    direction: "up" | "down",
     limit: number,
     filters: Filters,
     sortField: keyof Data | null,
     sortDir: "asc" | "desc"
   ) => Promise<{
     items: Data[];
-    hasMore: boolean; 
+    hasMore: boolean;
     hasPrev: boolean;
     total?: number;
     nextCursor: number | null;
@@ -21,14 +19,11 @@ export interface ServerVirtualWindowConfig {
 
   filters: Filters;
   sortField: keyof Data | null;
-
-
   sortDir: "asc" | "desc";
-
   rowHeight: number;
-  initial: number; 
-  step: number;
-  windowSize: number; 
+
+  initialLimit?: number;
+  pageLimit: number;
+  maxBuffer: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
-

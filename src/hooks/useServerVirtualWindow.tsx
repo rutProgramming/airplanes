@@ -2,35 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Data } from "../Types/Data";
-import type { Filters } from "../Types/Filters";
+import type { ServerVirtualWindowConfig } from "../Types/ServerVirtualWindowConfig";
 
-export interface ServerVirtualWindowConfig {
-  fetchFunction: (
-    cursor: number,
-    direction: "up" | "down",
-    limit: number,
-    filters: Filters,
-    sortField: keyof Data | null,
-    sortDir: "asc" | "desc"
-  ) => Promise<{
-    items: Data[];
-    hasMore: boolean;
-    hasPrev: boolean;
-    total?: number;
-    nextCursor: number | null;
-    prevCursor: number | null;
-  }>;
-
-  filters: Filters;
-  sortField: keyof Data | null;
-  sortDir: "asc" | "desc";
-  rowHeight: number;
-
-  initialLimit?: number;
-  pageLimit: number;
-  maxBuffer: number;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-}
 
 export function useServerVirtualWindow({
   fetchFunction,
@@ -61,7 +34,8 @@ export function useServerVirtualWindow({
     if (totalCount === null) return 0;
     const renderedEnd = topCursorRef.current + rows.length;
     return Math.max(0, (totalCount - renderedEnd) * rowHeight);
-  }, [totalCount, rows.length, rowHeight]);
+  }, [totalCount, rows.length, rowHeight, topCursorRef.current]);
+
 
   const loadInitial = useCallback(async () => {
     setLoading({ up: false, down: true });
@@ -77,6 +51,7 @@ export function useServerVirtualWindow({
 
       if (typeof data.total === "number") setTotalCount(data.total);
       else setTotalCount(null);
+      containerRef.current?.scrollTo(0, 0);
     } catch (e) {
       console.error("loadInitial failed:", e);
       setRows([]);
@@ -109,14 +84,14 @@ export function useServerVirtualWindow({
         return;
       }
 
+      bottomCursorRef.current = data.nextCursor ?? bottomCursorRef.current;
       setRows((prev) => [...prev, ...items]);
-      bottomCursorRef.current += items.length;
 
-      setHasMore((p) => ({ ...p, down: Boolean(data.hasMore), up: true }));
       if (rows.length > maxBuffer) {
         setRows((prev) => prev.slice(rows.length - maxBuffer));
         topCursorRef.current += (rows.length - maxBuffer);
       }
+      setHasMore((p) => ({ ...p, down: Boolean(data.hasMore), up: true }));
       if (typeof data.total === "number") setTotalCount(data.total);
     } catch (e) {
       console.error("loadMoreDown failed:", e);
@@ -181,14 +156,14 @@ export function useServerVirtualWindow({
       ([entry]) => {
         if (entry.isIntersecting) loadMoreUp();
       },
-      { root, threshold: 0, rootMargin: "200px" }
+      { root, rootMargin: "200px" }
     );
 
     const bottomObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadMoreDown();
       },
-      { root, threshold: 0, rootMargin: "200px" }
+      { root, rootMargin: "200px" }
     );
 
     if (topRef.current) topObserver.observe(topRef.current);

@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
-import { useServerVirtualWindow } from "../hooks/useVirtualWindow";
+import { useServerVirtualWindow } from "../hooks/useServerVirtualWindow";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "../styles/table.styles";
 import type { Filters } from "../Types/Filters";
 import type { Column } from "../Types/Column";
@@ -31,12 +31,10 @@ const columns: readonly Column[] = [
 ];
 
 export default function AirplanesTableData() {
-  const [filters, setFilters] = useState<Filters>({});
+  const [filters, setFilters] = useState<Filters>({types: []});
   const debouncedFilters = useDebounce(filters);
-
   const [orderBy, setOrderBy] = useState<keyof Data | null>(null);
   const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
-
   const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,8 +69,7 @@ export default function AirplanesTableData() {
       const res = await fetch(`/api/airplanes?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch airplanes");
 
-      const data = await res.json();
-      
+      const data = await res.json();      
       return {
         items: data.items ?? [],
         hasPrev: Boolean(data.hasPrev),
@@ -135,7 +132,7 @@ export default function AirplanesTableData() {
 
             <TableBody>
               <TableRow ref={topRef}>
-                <TableCell colSpan={columns.length} style={{ height: Math.max(1, topSpacerHeight), padding: 0 }}>
+                <TableCell colSpan={columns.length} style={{ height:  topSpacerHeight, padding: 0 }}>
                   {loading.up && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                       <CircularProgress size={20} />
@@ -162,7 +159,7 @@ export default function AirplanesTableData() {
               <TableRow ref={bottomRef}>
                 <TableCell
                   colSpan={columns.length}
-                  style={{ height: Math.max(1, bottomSpacerHeight), padding: 0 }}
+                  style={{ height:  bottomSpacerHeight, padding: 0 }}
                 >
                   {loading.down && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
