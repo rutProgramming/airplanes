@@ -1,8 +1,8 @@
 import { Box, Checkbox, FormControlLabel, TextField } from "@mui/material";
 import { filterBarStyle, formControlStyle } from "../styles/filterBar.styles";
-import type { Filters } from "../Types/Filters";
+import type { Filters } from "../types/Filters";
 import { useCallback } from "react";
-import type { FilterBarProps } from "../Types/FilterBarProps";
+import type { FilterBarProps } from "../types/FilterBarProps";
 
 
 export default function FilterBar({
