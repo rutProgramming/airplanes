@@ -2,9 +2,12 @@ import { ofType, type Epic } from "redux-observable";
 import { concat, from, of } from "rxjs";
 import {
   catchError,
+  delay,
   exhaustMap,
   filter,
   map,
+  retryWhen,
+  scan,
   switchMap,
   takeUntil,
   withLatestFrom,
@@ -152,11 +155,10 @@ export const airplanesUpdateEpic: Epic<any, any, RootState> = (action$) =>
     ofType(airplanesUpdateRequested.type),
     exhaustMap((action: ReturnType<typeof airplanesUpdateRequested>) =>
       from(mutateUpdateAirplane(action.payload)).pipe(
-        // “רק אחרי שהשרת החזיר” → מעדכנים סטור
         map((item) => airplanesActions.upsertFromServer(item)),
         catchError((err) => {
           console.error("update failed", err);
-          return of(airplanesActions.setLoading({})); // אפשר להחליף ב-action error מסודר
+          return of(airplanesActions.setLoading({}));
         })
       )
     )
@@ -167,15 +169,20 @@ export const airplanesSubscriptionEpic: Epic<any, any, RootState> = (action$) =>
     ofType(airplanesSubStart.type),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
-        map((evt) => {
-          if (evt.op === "upsert") return airplanesActions.upsertFromServer(evt.item);
-          return airplanesActions.removeFromServer({ id: evt.id });
-        }),
-        catchError((err) => {
-          console.error("subscription error", err);
-          // אפשר להחזיר action שמציג error ב-UI
-          return of(airplanesActions.setLoading({}));
-        }),
+        map((evt) =>
+          evt.op === "upsert"
+            ? airplanesActions.upsertFromServer(evt.item)
+            : airplanesActions.removeFromServer({ id: evt.id })
+        ),
+        retryWhen((errors) =>
+          errors.pipe(
+            scan((count, err) => {
+              console.error("subscription error", err);
+              return count + 1;
+            }, 0),
+            delay(1000)
+          )
+        ),
         takeUntil(action$.pipe(ofType(airplanesSubStop.type)))
       )
     )
