@@ -13,7 +13,7 @@ export type BoundedViewState = {
   totalCount: number | null;
   loading: { up: boolean; down: boolean };
   hasMore: { up: boolean; down: boolean };
-  cursors: { prev: number | null; next: number | null }; 
+  cursors: { prev: number | null; next: number | null };
 };
 
 export type BoundedEntityState<T, Id extends EntityId> = EntityState<T, Id> & BoundedViewState;
@@ -74,9 +74,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
     }
   }
 
- 
+
   function toIdArray(ids: readonly EntityId[]): readonly Id[] {
-    return ids  as readonly Id[];
+    return ids as readonly Id[];
   }
 
   const slice = createSlice({
@@ -109,6 +109,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           items: T[];
           total: number | null;
           hasMoreDown: boolean;
+          hasMoreUp: boolean;
           prevCursor: number | null;
           nextCursor: number | null;
         }>
@@ -120,8 +121,10 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
 
         state.topOffset = 0;
         state.totalCount = action.payload.total;
-        state.hasMore = { up: false, down: action.payload.hasMoreDown };
-        state.cursors.prev = action.payload.prevCursor;
+        state.hasMore = {
+          up: action.payload.hasMoreUp,
+          down: action.payload.hasMoreDown,
+        }; state.cursors.prev = action.payload.prevCursor;
         state.cursors.next = action.payload.nextCursor;
       },
 
@@ -130,6 +133,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         action: PayloadAction<{
           items: T[];
           maxBuffer: number;
+          hasMoreUp: boolean
           hasMoreDown: boolean;
           nextCursor: number | null;
           prevCursor?: number | null;
@@ -150,8 +154,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           adapter.removeMany(state, toIdArray(removed));
         }
 
+        // appendPage
         state.hasMore.down = hasMoreDown;
-        state.hasMore.up = true;
+        if ("hasMoreUp" in action.payload) state.hasMore.up = !!action.payload.hasMoreUp;
 
         state.cursors.next = nextCursor;
         if ("prevCursor" in action.payload) state.cursors.prev = action.payload.prevCursor ?? state.cursors.prev;
@@ -164,6 +169,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           items: T[];
           maxBuffer: number;
           hasMoreUp: boolean;
+          hasMoreDown: boolean
           prevCursor: number | null;
           nextCursor?: number | null;
           total?: number | null;
@@ -174,18 +180,18 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         adapter.upsertMany(state, items);
 
         const newIds = items.map(args.selectId) as EntityId[];
-        prependIds( state as BoundedEntityState<T, Id>, newIds);
+        prependIds(state as BoundedEntityState<T, Id>, newIds);
 
         if (state.bufferIds.length > maxBuffer) {
           const overflow = state.bufferIds.length - maxBuffer;
-          const removed = trimFromBottom(state  as BoundedEntityState<T, Id>, overflow);
+          const removed = trimFromBottom(state as BoundedEntityState<T, Id>, overflow);
           adapter.removeMany(state, toIdArray(removed));
         }
 
         state.topOffset = Math.max(0, state.topOffset - items.length);
 
         state.hasMore.up = hasMoreUp;
-        state.hasMore.down = true;
+        if ("hasMoreDown" in action.payload) state.hasMore.down = !!action.payload.hasMoreDown;
 
         state.cursors.prev = prevCursor;
         if ("nextCursor" in action.payload) state.cursors.next = action.payload.nextCursor ?? state.cursors.next;

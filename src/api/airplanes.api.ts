@@ -10,6 +10,8 @@ export type PageResponse = {
   nextCursor: number | null;
   prevCursor: number | null;
   hasMore: boolean;
+
+  hasPrev: boolean; 
   total: number;
 };
 
@@ -18,19 +20,17 @@ export type ChangeEvent =
   | { op: "delete"; entity: "airplane"; id: string; ts: number };
 
 const http = createGraphqlHttpClient({ url: "/graphql" });
-const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" }); // תעדכני
+const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" }); 
 
 // TODO: לשנות ל-query שלכם בפועל
-const PAGE_QUERY = /* GraphQL */ `
-  query AirplanesPage($cursor: Int!, $limit: Int!, $direction: String!, $filters: JSON!, $sort: JSON) {
-    airplanesPage(cursor: $cursor, limit: $limit, direction: $direction, filters: $filters, sort: $sort) {
-      items { id type capacity size }
-      nextCursor
-      prevCursor
-      hasMore
-      total
-    }
+const PAGE_QUERY = `
+  query($cursor:Int!,$limit:Int!,$direction:Direction!){
+  airplanesPage(cursor:$cursor,limit:$limit,direction:$direction){
+    total nextCursor prevCursor hasMore hasPrev
+    items{ id type capacity size }
   }
+}
+
 `;
 
 export async function queryAirplanesPage(vars: {

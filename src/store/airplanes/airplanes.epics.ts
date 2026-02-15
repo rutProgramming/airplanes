@@ -51,15 +51,17 @@ export const airplanesInitEpic: Epic<any, any, RootState> = (action$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-          map((res) =>
-            airplanesActions.applyInitialPage({
-              items: res.items,
-              total: res.total ?? null,
-              hasMoreDown: res.hasMore,
-              prevCursor: res.prevCursor,
-              nextCursor: res.nextCursor,
-            })
-          ),
+         map((res) =>
+  airplanesActions.applyInitialPage({
+    items: res.items,
+    total: res.total ?? null,
+    hasMoreDown: res.hasMore,
+    hasMoreUp: res.hasPrev,
+    prevCursor: res.prevCursor,
+    nextCursor: res.nextCursor,
+  })
+),
+
           catchError((err) => {
             console.error("init failed", err);
             return of(airplanesActions.setHasMore({ down: false }));
@@ -90,16 +92,18 @@ export const airplanesNextEpic: Epic<any, any, RootState> = (action$, state$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-          map((res) =>
-            airplanesActions.appendPage({
-              items: res.items,
-              maxBuffer: MAX_BUFFER,
-              hasMoreDown: res.hasMore,
-              nextCursor: res.nextCursor,
-              prevCursor: res.prevCursor,
-              total: res.total ?? null,
-            })
-          ),
+         map((res) =>
+  airplanesActions.appendPage({
+    items: res.items,
+    maxBuffer: MAX_BUFFER,
+    hasMoreDown: res.hasMore,
+    hasMoreUp: res.hasPrev,
+    nextCursor: res.nextCursor,
+    prevCursor: res.prevCursor,
+    total: res.total ?? null,
+  })
+),
+
           catchError((err) => {
             console.error("next failed", err);
             return of(airplanesActions.setLoading({ down: false }));
@@ -130,16 +134,18 @@ export const airplanesPrevEpic: Epic<any, any, RootState> = (action$, state$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-          map((res) =>
-            airplanesActions.prependPage({
-              items: res.items,
-              maxBuffer: MAX_BUFFER,
-              hasMoreUp: res.hasMore,
-              prevCursor: res.prevCursor,
-              nextCursor: res.nextCursor,
-              total: res.total ?? null,
-            })
-          ),
+         map((res) =>
+  airplanesActions.prependPage({
+    items: res.items,
+    maxBuffer: MAX_BUFFER,
+    hasMoreUp: res.hasPrev,
+    hasMoreDown: res.hasMore,
+    prevCursor: res.prevCursor,
+    nextCursor: res.nextCursor,
+    total: res.total ?? null,
+  })
+),
+
           catchError((err) => {
             console.error("prev failed", err);
             return of(airplanesActions.setLoading({ up: false }));
