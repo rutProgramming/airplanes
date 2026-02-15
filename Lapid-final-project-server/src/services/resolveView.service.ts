@@ -1,60 +1,69 @@
-
 import { Filters, Sort } from "../routers/airplanes.router";
-import { addedFilters, applyAddedFilters, filterAllFromScratch, isSuperset, sortIndexes } from "./filterAnsSort.service";
+import {
+  addedFilters,
+  applyRestrictiveFilters,
+  filterAllFromScratch,
+  canOptimizeFilters,
+  sortIndexes
+} from "./filterAnsSort.service";
 import { getCache, setCache } from "./viewCache.service";
 
+function areFiltersEqual(a: Filters | null, b: Filters | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
-export function resolveView(
-  filters: Filters,
-  sort: Sort | null
-): number[] {
+function areSortsEqual(a: Sort | null, b: Sort | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.field === b.field && a.dir === b.dir;
+}
+
+
+
+
+export function resolveView(filters: Filters, sort: Sort | null): number[] {
   const cache = getCache();
-    
+
   const noChanges =
-    cache.filters &&
-    cache.sort === sort &&
-    cache.filters === filters;
-    
-  if (noChanges && cache.sorted) {
-    return cache.sorted;
-  }
+    cache.sorted &&
+    areFiltersEqual(cache.filters, filters) &&
+    areSortsEqual(cache.sort, sort);
+
+  if (noChanges && cache.sorted) return cache.sorted;
 
   const hasPrevFilters = !!cache.filters && !!cache.filtered;
   const hasPrevSort = !!cache.sort && !!cache.sorted;
   const wantsSort = sort !== null;
-  const sameSort = hasPrevSort && wantsSort && cache.sort === sort;
-  
-  const onlyAdded =
-    hasPrevFilters && isSuperset(cache.filters!, filters);
+  const sameSort = hasPrevSort && wantsSort && areSortsEqual(cache.sort, sort);
 
+  const onlyAddedRestrictive =
+    hasPrevFilters && canOptimizeFilters(cache.filters!, filters);
 
-  const baseFiltered: readonly number[] =
-    onlyAdded && cache.filtered
-      ? [...cache.filtered] 
-      : [...filterAllFromScratch(filters)]; 
-  
+  const useSortedBase =
+    onlyAddedRestrictive && sameSort && !!cache.sorted; 
+
   const filtered: readonly number[] =
-    onlyAdded && cache.filters
-      ? applyAddedFilters(
-          hasPrevSort && sameSort
-            ? cache.sorted!
-            : baseFiltered,
-          addedFilters(cache.filters, filters)
+    onlyAddedRestrictive && cache.filtered
+      ? applyRestrictiveFilters(
+          useSortedBase ? cache.sorted! : cache.filtered!,
+          addedFilters(cache.filters!, filters)
         )
-        : baseFiltered; 
-        
-        
+      : filterAllFromScratch(filters);
+
   const sorted: number[] =
     wantsSort
-      ? sameSort && hasPrevSort
-        ? [...filtered]
-        : sortIndexes([...filtered], sort!)
+      ? useSortedBase
+        ? [...filtered] 
+        : sortIndexes([...filtered], sort!) 
       : [...filtered];
+
   setCache({
     filters,
     filtered: [...filtered],
     sort: wantsSort ? sort : null,
-    sorted
+    sorted,
   });
 
   return sorted;
