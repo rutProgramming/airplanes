@@ -1,35 +1,55 @@
 import { Observable } from "rxjs";
 import type { Data } from "../types/Data";
-import { createGraphqlHttpClient } from "./gqlHttp";
-import { createGraphqlWsClient, subscribe } from "./gqlWs";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
+import { createGraphqlHttpClient } from "./gqlHttp";
+import { createGraphqlWsClient, subscribe } from "./gqlWs";
 
 export type PageResponse = {
   items: Data[];
   nextCursor: number | null;
   prevCursor: number | null;
   hasMore: boolean;
-
-  hasPrev: boolean; 
+  hasPrev: boolean;
   total: number;
 };
 
 export type ChangeEvent =
-  | { op: "upsert"; entity: "airplane"; item: Data; ts: number }
-  | { op: "delete"; entity: "airplane"; id: string; ts: number };
+  | { op: "upsert"; item: Data }
+  | { op: "remove"; id: string };
 
 const http = createGraphqlHttpClient({ url: "/graphql" });
-const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" }); 
+const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" });
 
-const PAGE_QUERY = `
-  query($cursor:Int!,$limit:Int!,$direction:Direction!){
-  airplanesPage(cursor:$cursor,limit:$limit,direction:$direction){
-    total nextCursor prevCursor hasMore hasPrev
-    items{ id type capacity size }
+
+const PAGE_QUERY = /* GraphQL */ `
+  query AirplanesPage(
+    $cursor: Int!
+    $limit: Int!
+    $direction: Direction!
+    $filters: FiltersInput
+    $sort: SortInput
+  ) {
+    airplanesPage(
+      cursor: $cursor
+      limit: $limit
+      direction: $direction
+      filters: $filters
+      sort: $sort
+    ) {
+      total
+      nextCursor
+      prevCursor
+      hasMore
+      hasPrev
+      items {
+        id
+        type
+        capacity
+        size
+      }
+    }
   }
-}
-
 `;
 
 export async function queryAirplanesPage(vars: {
@@ -40,14 +60,26 @@ export async function queryAirplanesPage(vars: {
   sort: Sort | null;
 }): Promise<PageResponse> {
   type Resp = { airplanesPage: PageResponse };
-  const data = await http<Resp, typeof vars>(PAGE_QUERY, vars);
+
+  const data = await http<Resp, any>(PAGE_QUERY, {
+    cursor: vars.cursor,
+    limit: vars.limit,
+    direction: vars.direction,
+    filters: vars.filters,
+    sort: vars.sort,
+  });
+
   return data.airplanesPage;
 }
 
-// TODO: mutation שלכם
 const UPDATE_MUTATION = /* GraphQL */ `
   mutation UpdateAirplane($id: ID!, $patch: JSON!) {
-    updateAirplane(id: $id, patch: $patch) { id type capacity size }
+    updateAirplane(id: $id, patch: $patch) {
+      id
+      type
+      capacity
+      size
+    }
   }
 `;
 
@@ -59,8 +91,6 @@ export async function mutateUpdateAirplane(vars: {
   const data = await http<Resp, typeof vars>(UPDATE_MUTATION, vars);
   return data.updateAirplane;
 }
-
-// TODO: subscription שלכם
 
 const CHANGES_SUB = /* GraphQL */ `
   subscription AirplaneChanged {
@@ -79,23 +109,41 @@ const CHANGES_SUB = /* GraphQL */ `
 
 export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
   return new Observable<ChangeEvent>((observer) => {
-    const dispose = subscribe<{ airplaneChanged: ChangeEvent }, Record<string, any>>(
+    const dispose = subscribe<
+      { airplaneChanged: { op: string; id?: string | null; item?: Data | null } },
+      Record<string, any>
+    >(
       wsClient,
       { query: CHANGES_SUB, variables: {} },
       {
-        onData: (data: { airplaneChanged: ChangeEvent }) => {
-          observer.next(data.airplaneChanged);
+        onData: (data) => {
+          const evt = data.airplaneChanged;
+
+          if (evt.op === "upsert" && evt.item) {
+            observer.next({ op: "upsert", item: evt.item });
+            return;
+          }
+          if ((evt.op === "remove" || evt.op === "delete") && evt.id) {
+            observer.next({ op: "remove", id: evt.id });
+            return;
+          }
         },
-        onError: (err: unknown) => observer.error(err),
+        onError: (err) => observer.error(err),
       }
     );
 
     return () => {
       try {
         dispose();
-      } catch {
-        // ignore
-      }
+      } catch {}
     };
   });
+}
+const UNIQUE_TYPES = `
+  query UniqueTypes { uniqueTypes }
+`;
+
+export async function queryUniqueTypes(): Promise<string[]> {
+  const data = await http<{ uniqueTypes: string[] }, {}>(UNIQUE_TYPES, {});
+  return data.uniqueTypes;
 }

@@ -137,8 +137,9 @@
 //     </>
 //   );
 // }
-import { useEffect, useMemo, useRef, useState } from "react";
 
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
@@ -149,19 +150,15 @@ import TableContainer from "@mui/material/TableContainer";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
-
 import type { Column } from "../types/Column";
 import type { Data } from "../types/Data";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
-
-// import { fetchUniqueTypes } from "../services/airplanes.service"; // keep if this is not GraphQL yet
-
 import { useAirplanesData } from "../hooks/useAirplanesData";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "../styles/table.styles";
+import { queryUniqueTypes } from "../api/airplanes.api";
 
 const ROW_HEIGHT = 48;
 
@@ -186,7 +183,7 @@ export default function AirplanesTableData() {
   const bottomSentinelRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
-    // fetchUniqueTypes().then(setUniqueTypes).catch(console.error);
+    queryUniqueTypes().then(setUniqueTypes).catch(console.error);
   }, []);
 
   const sort: Sort | null = useMemo(() => {
@@ -199,12 +196,10 @@ export default function AirplanesTableData() {
     sort,
   });
 
-  // reset scrollTop to 0 on filters/sort change (requirement)
   useEffect(() => {
     containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [debouncedFilters, sort]);
 
-  // spacer heights come from Redux topOffset + totalCount
   const topSpacerHeight = topOffset * ROW_HEIGHT;
 
   const bottomSpacerHeight = useMemo(() => {
@@ -213,7 +208,6 @@ export default function AirplanesTableData() {
     return Math.max(0, (totalCount - renderedEnd) * ROW_HEIGHT);
   }, [totalCount, topOffset, rows.length]);
 
-  // IntersectionObservers (only dispatch loadPrev/loadNext)
   useEffect(() => {
     const root = containerRef.current;
     if (!root) return;
@@ -228,7 +222,6 @@ export default function AirplanesTableData() {
     const bottomObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadNext();
-        console.log("BOTTOM HIT")
       },
       { root, rootMargin: "200px" }
     );
@@ -283,7 +276,7 @@ export default function AirplanesTableData() {
 
             <TableBody>
               {/* TOP spacer + sentinel */}
-              <TableRow ref={topSentinelRef}>
+              <TableRow ref={topSentinelRef } style={{ height: 1 }}>
                 <TableCell colSpan={columns.length} style={{ height: topSpacerHeight, padding: 0 }}>
                   {loading.up && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
@@ -311,7 +304,7 @@ export default function AirplanesTableData() {
               )}
 
               {/* BOTTOM spacer + sentinel */}
-              <TableRow ref={bottomSentinelRef}>
+              <TableRow ref={bottomSentinelRef} style={{ height: 1 }}>
                 <TableCell colSpan={columns.length} style={{ height: bottomSpacerHeight, padding: 0 }}>
                   {loading.down && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
