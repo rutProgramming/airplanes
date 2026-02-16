@@ -22,7 +22,6 @@ export type ChangeEvent =
 const http = createGraphqlHttpClient({ url: "/graphql" });
 const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" }); 
 
-// TODO: לשנות ל-query שלכם בפועל
 const PAGE_QUERY = `
   query($cursor:Int!,$limit:Int!,$direction:Direction!){
   airplanesPage(cursor:$cursor,limit:$limit,direction:$direction){
@@ -62,17 +61,22 @@ export async function mutateUpdateAirplane(vars: {
 }
 
 // TODO: subscription שלכם
+
 const CHANGES_SUB = /* GraphQL */ `
   subscription AirplaneChanged {
     airplaneChanged {
       op
-      entity
-      ts
-      item { id type capacity size }
       id
+      item {
+        id
+        type
+        capacity
+        size
+      }
     }
   }
 `;
+
 export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
   return new Observable<ChangeEvent>((observer) => {
     const dispose = subscribe<{ airplaneChanged: ChangeEvent }, Record<string, any>>(

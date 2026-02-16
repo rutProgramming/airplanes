@@ -228,6 +228,7 @@ export default function AirplanesTableData() {
     const bottomObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadNext();
+        console.log("BOTTOM HIT")
       },
       { root, rootMargin: "200px" }
     );

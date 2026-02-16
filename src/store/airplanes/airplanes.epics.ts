@@ -51,16 +51,16 @@ export const airplanesInitEpic: Epic<any, any, RootState> = (action$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-         map((res) =>
-  airplanesActions.applyInitialPage({
-    items: res.items,
-    total: res.total ?? null,
-    hasMoreDown: res.hasMore,
-    hasMoreUp: res.hasPrev,
-    prevCursor: res.prevCursor,
-    nextCursor: res.nextCursor,
-  })
-),
+          map((res) =>
+            airplanesActions.applyInitialPage({
+              items: res.items,
+              total: res.total ?? null,
+              hasMoreDown: res.hasMore,
+              hasMoreUp: res.hasPrev,
+              prevCursor: res.prevCursor,
+              nextCursor: res.nextCursor,
+            })
+          ),
 
           catchError((err) => {
             console.error("init failed", err);
@@ -92,17 +92,17 @@ export const airplanesNextEpic: Epic<any, any, RootState> = (action$, state$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-         map((res) =>
-  airplanesActions.appendPage({
-    items: res.items,
-    maxBuffer: MAX_BUFFER,
-    hasMoreDown: res.hasMore,
-    hasMoreUp: res.hasPrev,
-    nextCursor: res.nextCursor,
-    prevCursor: res.prevCursor,
-    total: res.total ?? null,
-  })
-),
+          map((res) =>
+            airplanesActions.appendPage({
+              items: res.items,
+              maxBuffer: MAX_BUFFER,
+              hasMoreDown: res.hasMore,
+              hasMoreUp: res.hasPrev,
+              nextCursor: res.nextCursor,
+              prevCursor: res.prevCursor,
+              total: res.total ?? null,
+            })
+          ),
 
           catchError((err) => {
             console.error("next failed", err);
@@ -134,17 +134,17 @@ export const airplanesPrevEpic: Epic<any, any, RootState> = (action$, state$) =>
             sort: action.payload.sort,
           })
         ).pipe(
-         map((res) =>
-  airplanesActions.prependPage({
-    items: res.items,
-    maxBuffer: MAX_BUFFER,
-    hasMoreUp: res.hasPrev,
-    hasMoreDown: res.hasMore,
-    prevCursor: res.prevCursor,
-    nextCursor: res.nextCursor,
-    total: res.total ?? null,
-  })
-),
+          map((res) =>
+            airplanesActions.prependPage({
+              items: res.items,
+              maxBuffer: MAX_BUFFER,
+              hasMoreUp: res.hasPrev,
+              hasMoreDown: res.hasMore,
+              prevCursor: res.prevCursor,
+              nextCursor: res.nextCursor,
+              total: res.total ?? null,
+            })
+          ),
 
           catchError((err) => {
             console.error("prev failed", err);
@@ -183,7 +183,13 @@ export const airplanesSubscriptionEpic: Epic<any, any, RootState> = (action$) =>
         retryWhen((errors) =>
           errors.pipe(
             scan((count, err) => {
-              console.error("subscription error", err);
+              console.error("subscription error raw:", err);
+              if (Array.isArray(err)) {
+                console.error("subscription graphql errors:", err.map(e => e?.message ?? e));
+              } else {
+                console.error("subscription err message:", (err as any)?.message);
+              }
+
               return count + 1;
             }, 0),
             delay(1000)

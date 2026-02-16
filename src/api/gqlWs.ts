@@ -4,7 +4,7 @@ export function createGraphqlWsClient(opts: { url: string }): Client {
   return createClient({
     url: opts.url,
     lazy: true,
-    retryAttempts: 20,
+    retryAttempts: 0,
   });
 }
 
