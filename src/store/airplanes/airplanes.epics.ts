@@ -170,7 +170,7 @@ export const airplanesUpdateEpic: Epic<any, any, RootState> = (action$) =>
     )
   );
 
-export const airplanesSubscriptionEpic: Epic<any, any, RootState> = (action$) =>
+export const airplanesSubscriptionEpic: Epic = (action$) =>
   action$.pipe(
     ofType(airplanesSubStart.type),
     switchMap(() =>
@@ -183,13 +183,7 @@ export const airplanesSubscriptionEpic: Epic<any, any, RootState> = (action$) =>
         retryWhen((errors) =>
           errors.pipe(
             scan((count, err) => {
-              console.error("subscription error raw:", err);
-              if (Array.isArray(err)) {
-                console.error("subscription graphql errors:", err.map(e => e?.message ?? e));
-              } else {
-                console.error("subscription err message:", (err as any)?.message);
-              }
-
+              console.error("subscription error", err);
               return count + 1;
             }, 0),
             delay(1000)

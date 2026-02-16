@@ -17,6 +17,9 @@ export const airplanesPrevRequested = createAction<{ filters: Filters; sort: Sor
 export const airplanesUpdateRequested = createAction<{ id: string; patch: Record<string, any> }>(
   "airplanes/updateRequested"
 );
+export const airplanesDeleteRequested = createAction<{ id: string}>(
+  "airplanes/deleteRequested"
+);
 
 export const airplanesSubStart = createAction("airplanes/subscriptionStart");
 export const airplanesSubStop = createAction("airplanes/subscriptionStop");

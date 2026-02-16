@@ -233,7 +233,7 @@ export default function AirplanesTableData() {
       topObserver.disconnect();
       bottomObserver.disconnect();
     };
-  }, [loadPrev, loadNext]);
+  }, [containerRef,loadPrev, loadNext]);
 
   const handleHeaderClick = (columnId: keyof Data) => {
     if (orderBy !== columnId) {

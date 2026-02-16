@@ -154,7 +154,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           adapter.removeMany(state, toIdArray(removed));
         }
 
-        // appendPage
         state.hasMore.down = hasMoreDown;
         if ("hasMoreUp" in action.payload) state.hasMore.up = !!action.payload.hasMoreUp;
 
