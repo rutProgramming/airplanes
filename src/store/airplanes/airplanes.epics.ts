@@ -15,6 +15,7 @@ import {
 
 import type { RootState } from "../store";
 import type { Data } from "../../types/Data";
+
 import {
   airplanesInitRequested,
   airplanesNextRequested,
@@ -37,11 +38,19 @@ const PAGE_LIMIT = 20;
 const MAX_BUFFER = 50;
 
 const sel = {
-  cursors: (s: RootState) => s.airplanes.cursors,
   hasMore: (s: RootState) => s.airplanes.hasMore,
   loading: (s: RootState) => s.airplanes.loading,
+  topOffset: (s: RootState) => s.airplanes.topOffset,
+  bufferLen: (s: RootState) => s.airplanes.bufferIds.length,
   entityById: (s: RootState, id: string) => s.airplanes.entities[id] as Data | undefined,
 };
+
+function nextCursorFromState(s: RootState): number {
+  return sel.topOffset(s) + sel.bufferLen(s);
+}
+function prevCursorFromState(s: RootState): number {
+  return sel.topOffset(s);
+}
 
 type AirplanesInActions =
   | ReturnType<typeof airplanesInitRequested>
@@ -66,10 +75,11 @@ type AirplanesOutActions =
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
 
+
 export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesInitRequested.type),
-    exhaustMap((a) => {
+    switchMap((a) => {
       const action = a as ReturnType<typeof airplanesInitRequested>;
 
       return concat(
@@ -92,8 +102,8 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
               total: res.total ?? null,
               hasMoreDown: res.hasMore,
               hasMoreUp: res.hasPrev,
-              prevCursor: res.prevCursor ?? null, 
-              nextCursor: res.nextCursor ?? null, 
+              prevCursor: res.prevCursor ?? null,
+              nextCursor: res.nextCursor ?? null,
             })
           ),
           catchError((err) => {
@@ -109,16 +119,17 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
     })
   );
 
+
 export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesNextRequested.type),
     withLatestFrom(state$),
     filter(([_, s]) => {
-      const { next } = sel.cursors(s);
-      return sel.hasMore(s).down && next !== null && !sel.loading(s).down;
+      return sel.hasMore(s).down && !sel.loading(s).down;
     }),
     exhaustMap(([a, s]) => {
       const action = a as ReturnType<typeof airplanesNextRequested>;
+      const cursor = nextCursorFromState(s);
 
       return concat(
         of(
@@ -127,7 +138,7 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
         ),
         from(
           queryAirplanesPage({
-            cursor: sel.cursors(s).next!,
+            cursor,
             limit: PAGE_LIMIT,
             direction: "down",
             filters: action.payload.filters,
@@ -155,16 +166,18 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
     })
   );
 
+
 export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesPrevRequested.type),
     withLatestFrom(state$),
     filter(([_, s]) => {
-      const { prev } = sel.cursors(s);
-      return sel.hasMore(s).up && prev !== null && !sel.loading(s).up;
+      if (sel.topOffset(s) === 0) return false;
+      return sel.hasMore(s).up && !sel.loading(s).up;
     }),
     exhaustMap(([a, s]) => {
       const action = a as ReturnType<typeof airplanesPrevRequested>;
+      const cursor = prevCursorFromState(s);
 
       return concat(
         of(
@@ -173,7 +186,7 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
         ),
         from(
           queryAirplanesPage({
-            cursor: sel.cursors(s).prev!,
+            cursor,
             limit: PAGE_LIMIT,
             direction: "up",
             filters: action.payload.filters,
@@ -186,8 +199,8 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
               maxBuffer: MAX_BUFFER,
               hasMoreUp: res.hasPrev,
               hasMoreDown: res.hasMore,
-              prevCursor: res.prevCursor ?? null,
-              nextCursor: res.nextCursor ?? null,  
+              prevCursor: res.prevCursor ?? null, 
+              nextCursor: res.nextCursor ?? null, 
               total: res.total ?? null,
             })
           ),
@@ -215,7 +228,6 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
       );
     })
   );
-
 
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(

@@ -9,8 +9,8 @@ export function useAirplanesActions() {
   const dispatch = useDispatch<AppDispatch>();
 
   const updateRow = useCallback(
-    (draftRow : AirplaneInput) => {
-      airplanesUpdateRequested({ input:draftRow  })
+    (draftRow: AirplaneInput) => {
+      dispatch(airplanesUpdateRequested({ input: draftRow }));
     },
     [dispatch]
   );
@@ -21,5 +21,5 @@ export function useAirplanesActions() {
     [dispatch]
   );
 
-  return { updateRow };
+  return { updateRow ,deleteRow};
 }

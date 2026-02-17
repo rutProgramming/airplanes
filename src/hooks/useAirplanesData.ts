@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "../store/store"
+import type { RootState, AppDispatch } from "../store/store";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
-import { airplanesSlice } from "../store/airplanes/airplanes.slice";
 import {
   airplanesInitRequested,
   airplanesNextRequested,
@@ -17,20 +16,23 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
 
   const bufferIds = useSelector((s: RootState) => s.airplanes.bufferIds);
   const entities = useSelector((s: RootState) => s.airplanes.entities);
-
   const loading = useSelector((s: RootState) => s.airplanes.loading);
   const hasMore = useSelector((s: RootState) => s.airplanes.hasMore);
   const totalCount = useSelector((s: RootState) => s.airplanes.totalCount);
   const topOffset = useSelector((s: RootState) => s.airplanes.topOffset);
 
-  const rows = useMemo(() => {
-    return bufferIds.map((id) => entities[id]!).filter(Boolean);
-  }, [bufferIds, entities]);
+  const bufferLen = bufferIds.length;
 
-  useEffect(() => {
-    dispatch(airplanesSlice.actions.resetView());
-    dispatch(airplanesInitRequested({ filters: args.filters, sort: args.sort }));
-  }, [dispatch, args.filters, args.sort]);
+  const canLoadNext =
+    hasMore.down &&
+    !loading.down &&
+    (totalCount == null ? true : topOffset + bufferLen < totalCount);
+
+  const canLoadPrev = topOffset > 0 && hasMore.up && !loading.up;
+
+  const rows = useMemo(() => {
+    return bufferIds.map((id) => entities[id]).filter(Boolean);
+  }, [bufferIds, entities]);
 
   useEffect(() => {
     dispatch(airplanesSubStart());
@@ -38,6 +40,10 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
       dispatch(airplanesSubStop());
     };
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(airplanesInitRequested({ filters: args.filters, sort: args.sort }));
+  }, [dispatch, args.filters, args.sort]);
 
   const loadNext = useCallback(() => {
     dispatch(airplanesNextRequested({ filters: args.filters, sort: args.sort }));
@@ -47,13 +53,5 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
     dispatch(airplanesPrevRequested({ filters: args.filters, sort: args.sort }));
   }, [dispatch, args.filters, args.sort]);
 
-  return {
-    rows,
-    loading,
-    hasMore,
-    totalCount,
-    topOffset,
-    loadNext,
-    loadPrev,
-  };
+  return { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev };
 }

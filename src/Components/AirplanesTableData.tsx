@@ -9,14 +9,22 @@ import TableContainer from "@mui/material/TableContainer";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
+
 import type { Column } from "../types/Column";
 import type { Data } from "../types/Data";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
+
 import { useAirplanesData } from "../hooks/useAirplanesData";
-import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "../styles/table.styles";
+import {
+  paperStyle,
+  tableContainerStyle,
+  columnsTextStyle,
+  chipStyle,
+} from "../styles/table.styles";
 import { queryUniqueTypes } from "../api/airplanes.api";
 
 const ROW_HEIGHT = 48;
@@ -38,9 +46,8 @@ export default function AirplanesTableData() {
   const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  
-  const topRef = useRef<HTMLTableRowElement | null>(null);
-  const bottomRef = useRef<HTMLTableRowElement | null>(null);
+  const topSentinelRef = useRef<HTMLTableRowElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
     queryUniqueTypes().then(setUniqueTypes).catch(console.error);
@@ -51,17 +58,25 @@ export default function AirplanesTableData() {
     return { field: orderBy, dir: orderDir };
   }, [orderBy, orderDir]);
 
-  const { rows, loading, totalCount, topOffset, loadNext, loadPrev } = useAirplanesData({
+  const {
+    rows,
+    loading,
+    totalCount,
+    topOffset,
+    loadNext,
+    loadPrev,
+    canLoadNext,
+    canLoadPrev,
+  } = useAirplanesData({
     filters: debouncedFilters,
     sort,
   });
 
   useEffect(() => {
-    containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    containerRef.current?.scrollTo({ top: 0 });
   }, [debouncedFilters, sort]);
 
   const topSpacerHeight = topOffset * ROW_HEIGHT;
-
 
   const bottomSpacerHeight = useMemo(() => {
     if (totalCount == null) return 0;
@@ -69,33 +84,71 @@ export default function AirplanesTableData() {
     return Math.max(0, (totalCount - renderedEnd) * ROW_HEIGHT);
   }, [totalCount, topOffset, rows.length]);
 
+  const [isScrollable, setIsScrollable] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setIsScrollable(el.scrollHeight > el.clientHeight + 1);
+  }, [rows.length, topOffset, bottomSpacerHeight]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const scrollable = el.scrollHeight > el.clientHeight + 1;
+
+    if (!scrollable && canLoadNext && !loading.down) {
+      loadNext();
+    }
+  }, [rows.length, canLoadNext, loading.down, loadNext]);
+
   useEffect(() => {
     const root = containerRef.current;
-    if (!root) return;
+    const topEl = topSentinelRef.current;
+    const bottomEl = bottomSentinelRef.current;
+
+    if (!root || !topEl || !bottomEl) return;
 
     const topObserver = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) loadPrev();
+        if (!entry.isIntersecting) return;
+        if (!isScrollable) return;
+        if (topOffset === 0) return;
+        if (!canLoadPrev) return;
+
+        loadPrev();
       },
-      { root, rootMargin: "200px" }
+      { root, rootMargin: "150px" }
     );
 
     const bottomObserver = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) loadNext();
+        if (!entry.isIntersecting) return;
+
+        if (!isScrollable) return;
+        if (!canLoadNext) return;
+
+        loadNext();
       },
-      { root, rootMargin: "200px" }
+      { root, rootMargin: "150px" }
     );
 
-    
-    if (topRef.current) topObserver.observe(topRef.current);
-    if (bottomRef.current) bottomObserver.observe(bottomRef.current);
+    topObserver.observe(topEl);
+    bottomObserver.observe(bottomEl);
 
     return () => {
       topObserver.disconnect();
       bottomObserver.disconnect();
     };
-  }, [containerRef,loadPrev, loadNext]);
+  }, [
+    isScrollable,
+    topOffset,
+    canLoadNext,
+    canLoadPrev,
+    loadNext,
+    loadPrev,
+  ]);
 
   const handleHeaderClick = (columnId: keyof Data) => {
     if (orderBy !== columnId) {
@@ -109,17 +162,23 @@ export default function AirplanesTableData() {
     }
     setOrderBy(null);
   };
-  return (
+
+
+ return (
     <>
       <FilterBar filters={filters} setFilters={setFilters} uniqueTypes={uniqueTypes} />
+
       <Paper sx={paperStyle}>
-        
         <TableContainer ref={containerRef} sx={tableContainerStyle}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
                 {columns.map((col) => (
-                  <TableCell key={col.id} onClick={() => handleHeaderClick(col.id)} sx={columnsTextStyle}>
+                  <TableCell
+                    key={col.id}
+                    onClick={() => handleHeaderClick(col.id)}
+                    sx={columnsTextStyle}
+                  >
                     {col.label}
                     <Chip
                       size="small"
@@ -132,14 +191,18 @@ export default function AirplanesTableData() {
             </TableHead>
 
             <TableBody>
-              <TableRow ref={topRef}>
-                <TableCell colSpan={columns.length} style={{ height:  topSpacerHeight, padding: 0 }}>
+              <TableRow>
+                <TableCell colSpan={columns.length} style={{ height: topSpacerHeight, padding: 0 }}>
                   {loading.up && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                       <CircularProgress size={20} />
                     </Box>
                   )}
                 </TableCell>
+              </TableRow>
+
+              <TableRow ref={topSentinelRef}>
+                <TableCell colSpan={columns.length} style={{ height: 1, padding: 0 }} />
               </TableRow>
 
               {rows.length > 0 ? (
@@ -157,11 +220,13 @@ export default function AirplanesTableData() {
                   </TableCell>
                 </TableRow>
               )}
-              <TableRow ref={bottomRef}>
-                <TableCell
-                  colSpan={columns.length}
-                  style={{ height:  bottomSpacerHeight, padding: 0 }}
-                >
+
+              <TableRow ref={bottomSentinelRef}>
+                <TableCell colSpan={columns.length} style={{ height: 1, padding: 0 }} />
+              </TableRow>
+
+              <TableRow>
+                <TableCell colSpan={columns.length} style={{ height: bottomSpacerHeight, padding: 0 }}>
                   {loading.down && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                       <CircularProgress size={20} />
@@ -176,4 +241,3 @@ export default function AirplanesTableData() {
     </>
   );
 }
-
