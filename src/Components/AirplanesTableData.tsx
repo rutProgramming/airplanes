@@ -255,9 +255,6 @@ import TableContainer from "@mui/material/TableContainer";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
@@ -266,7 +263,6 @@ import type { Data } from "../types/Data";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
 import { useAirplanesData } from "../hooks/useAirplanesData";
-import { useAirplanesActions } from "../hooks/useAirplanesActions";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle } from "../styles/table.styles";
 import { queryUniqueTypes } from "../api/airplanes.api";
 
@@ -302,8 +298,6 @@ export default function AirplanesTableData() {
 
   const { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev } =
     useAirplanesData({ filters: debouncedFilters, sort });
-
-  const { updateRow, deleteRow } = useAirplanesActions();
 
   const topSpacerHeight = topOffset * ROW_HEIGHT;
 
@@ -402,7 +396,7 @@ useEffect(() => {
 
             <TableBody>
               <TableRow>
-                <TableCell colSpan={columns.length + 1} style={{ height: topSpacerHeight, padding: 0 }}>
+                <TableCell colSpan={columns.length} style={{ height: topSpacerHeight, padding: 0 }}>
                   {loading.up && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                       <CircularProgress size={20} />
@@ -412,7 +406,7 @@ useEffect(() => {
               </TableRow>
 
               <TableRow ref={topSentinelRef}>
-                <TableCell colSpan={columns.length + 1} style={{ height: 1, padding: 0 }} />
+                <TableCell colSpan={columns.length} style={{ height: 1, padding: 0 }} />
               </TableRow>
 
               {rows.length > 0 ? (
@@ -421,57 +415,22 @@ useEffect(() => {
                     {columns.map((col) => (
                       <TableCell key={col.id}>{row[col.id]}</TableCell>
                     ))}
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        aria-label={`edit-${row.id}`}
-                        onClick={() => {
-                          const newType = window.prompt("Type:", String(row.type));
-                          if (newType == null) return;
-                          const capStr = window.prompt("Capacity:", String(row.capacity));
-                          if (capStr == null) return;
-                          const sizeStr = window.prompt("Size:", String(row.size));
-                          if (sizeStr == null) return;
-
-                          const capacity = Number(capStr);
-                          const size = Number(sizeStr);
-                          if (Number.isNaN(capacity) || Number.isNaN(size)) {
-                            window.alert("Capacity and Size must be numbers.");
-                            return;
-                          }
-
-                          updateRow({ id: row.id, type: newType, capacity, size });
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        aria-label={`delete-${row.id}`}
-                        onClick={() => {
-                          if (!window.confirm("Delete this airplane?")) return;
-                          deleteRow(row.id);
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length + 1} align="center">
+                  <TableCell colSpan={columns.length} align="center">
                     {loading.down ? <CircularProgress /> : "No matching airplanes found."}
                   </TableCell>
                 </TableRow>
               )}
 
               <TableRow ref={bottomSentinelRef}>
-                <TableCell colSpan={columns.length + 1} style={{ height: 1, padding: 0 }} />
+                <TableCell colSpan={columns.length} style={{ height: 1, padding: 0 }} />
               </TableRow>
 
               <TableRow>
-                <TableCell colSpan={columns.length + 1} style={{ height: bottomSpacerHeight, padding: 0 }}>
+                <TableCell colSpan={columns.length} style={{ height: bottomSpacerHeight, padding: 0 }}>
                   {loading.down && (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                       <CircularProgress size={20} />
