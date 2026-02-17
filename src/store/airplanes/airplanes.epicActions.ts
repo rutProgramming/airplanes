@@ -1,6 +1,7 @@
 import { createAction } from "@reduxjs/toolkit";
 import type { Filters } from "../../types/Filters";
 import type { Sort } from "../../types/Sort";
+import type { AirplaneInput } from "../../generated/graphql";
 
 export const airplanesInitRequested = createAction<{ filters: Filters; sort: Sort | null }>(
   "airplanes/initRequested"
@@ -14,7 +15,7 @@ export const airplanesPrevRequested = createAction<{ filters: Filters; sort: Sor
   "airplanes/prevRequested"
 );
 
-export const airplanesUpdateRequested = createAction<{ id: string; patch: Record<string, any> }>(
+export const airplanesUpdateRequested = createAction<{ input:AirplaneInput }>(
   "airplanes/updateRequested"
 );
 export const airplanesDeleteRequested = createAction<{ id: string}>(

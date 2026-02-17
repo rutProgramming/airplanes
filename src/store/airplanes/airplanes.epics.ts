@@ -14,6 +14,7 @@ import {
 } from "rxjs/operators";
 
 import type { RootState } from "../store";
+import type { Data } from "../../types/Data";
 import {
   airplanesInitRequested,
   airplanesNextRequested,
@@ -22,26 +23,60 @@ import {
   airplanesSubStart,
   airplanesSubStop,
 } from "./airplanes.epicActions";
-import { mutateUpdateAirplane, queryAirplanesPage, subscribeAirplaneChanges } from "../../api/airplanes.api";
-import { airplanesActions } from "./airplanes.slice";
 
+import {
+  mutateUpdateAirplane,
+  queryAirplanesPage,
+  subscribeAirplaneChanges,
+} from "../../api/airplanes.api";
+
+import { airplanesActions } from "./airplanes.slice";
 
 const INITIAL_LIMIT = 7;
 const PAGE_LIMIT = 20;
-const MAX_BUFFER = 200;
+const MAX_BUFFER = 50;
 
 const sel = {
   cursors: (s: RootState) => s.airplanes.cursors,
   hasMore: (s: RootState) => s.airplanes.hasMore,
   loading: (s: RootState) => s.airplanes.loading,
+  entityById: (s: RootState, id: string) => s.airplanes.entities[id] as Data | undefined,
 };
 
-export const airplanesInitEpic: Epic<any, any, RootState> = (action$) =>
+type AirplanesInActions =
+  | ReturnType<typeof airplanesInitRequested>
+  | ReturnType<typeof airplanesNextRequested>
+  | ReturnType<typeof airplanesPrevRequested>
+  | ReturnType<typeof airplanesUpdateRequested>
+  | ReturnType<typeof airplanesSubStart>
+  | ReturnType<typeof airplanesSubStop>;
+
+type AirplanesOutActions =
+  | ReturnType<typeof airplanesActions.setLoading>
+  | ReturnType<typeof airplanesActions.setHasMore>
+  | ReturnType<typeof airplanesActions.setTotalCount>
+  | ReturnType<typeof airplanesActions.resetView>
+  | ReturnType<typeof airplanesActions.applyInitialPage>
+  | ReturnType<typeof airplanesActions.appendPage>
+  | ReturnType<typeof airplanesActions.prependPage>
+  | ReturnType<typeof airplanesActions.upsertFromServer>
+  | ReturnType<typeof airplanesActions.removeFromServer>
+  | ReturnType<typeof airplanesActions.removeManyFromServer>
+  | ReturnType<typeof airplanesActions.setError>;
+
+export type AppAction = AirplanesInActions | AirplanesOutActions;
+
+export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesInitRequested.type),
-    exhaustMap((action: ReturnType<typeof airplanesInitRequested>) =>
-      concat(
-        of(airplanesActions.setLoading({ down: true, up: false })),
+    exhaustMap((a) => {
+      const action = a as ReturnType<typeof airplanesInitRequested>;
+
+      return concat(
+        of(
+          airplanesActions.setError(null),
+          airplanesActions.setLoading({ down: true, up: false })
+        ),
         from(
           queryAirplanesPage({
             cursor: 0,
@@ -57,32 +92,39 @@ export const airplanesInitEpic: Epic<any, any, RootState> = (action$) =>
               total: res.total ?? null,
               hasMoreDown: res.hasMore,
               hasMoreUp: res.hasPrev,
-              prevCursor: res.prevCursor,
-              nextCursor: res.nextCursor,
+              prevCursor: res.prevCursor ?? null, 
+              nextCursor: res.nextCursor ?? null, 
             })
           ),
-
           catchError((err) => {
             console.error("init failed", err);
-            return of(airplanesActions.setHasMore({ down: false }));
+            return of(
+              airplanesActions.setError("init failed"),
+              airplanesActions.setHasMore({ down: false })
+            );
           })
         ),
         of(airplanesActions.setLoading({ down: false }))
-      )
-    )
+      );
+    })
   );
 
-export const airplanesNextEpic: Epic<any, any, RootState> = (action$, state$) =>
+export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesNextRequested.type),
     withLatestFrom(state$),
-    filter(([, s]) => {
+    filter(([_, s]) => {
       const { next } = sel.cursors(s);
       return sel.hasMore(s).down && next !== null && !sel.loading(s).down;
     }),
-    exhaustMap(([action, s]: [ReturnType<typeof airplanesNextRequested>, RootState]) =>
-      concat(
-        of(airplanesActions.setLoading({ down: true })),
+    exhaustMap(([a, s]) => {
+      const action = a as ReturnType<typeof airplanesNextRequested>;
+
+      return concat(
+        of(
+          airplanesActions.setError(null),
+          airplanesActions.setLoading({ down: true })
+        ),
         from(
           queryAirplanesPage({
             cursor: sel.cursors(s).next!,
@@ -98,33 +140,37 @@ export const airplanesNextEpic: Epic<any, any, RootState> = (action$, state$) =>
               maxBuffer: MAX_BUFFER,
               hasMoreDown: res.hasMore,
               hasMoreUp: res.hasPrev,
-              nextCursor: res.nextCursor,
-              prevCursor: res.prevCursor,
+              nextCursor: res.nextCursor ?? null, 
+              prevCursor: res.prevCursor ?? null, 
               total: res.total ?? null,
             })
           ),
-
           catchError((err) => {
             console.error("next failed", err);
-            return of(airplanesActions.setLoading({ down: false }));
+            return of(airplanesActions.setError("next failed"));
           })
         ),
         of(airplanesActions.setLoading({ down: false }))
-      )
-    )
+      );
+    })
   );
 
-export const airplanesPrevEpic: Epic<any, any, RootState> = (action$, state$) =>
+export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesPrevRequested.type),
     withLatestFrom(state$),
-    filter(([, s]) => {
+    filter(([_, s]) => {
       const { prev } = sel.cursors(s);
       return sel.hasMore(s).up && prev !== null && !sel.loading(s).up;
     }),
-    exhaustMap(([action, s]: [ReturnType<typeof airplanesPrevRequested>, RootState]) =>
-      concat(
-        of(airplanesActions.setLoading({ up: true })),
+    exhaustMap(([a, s]) => {
+      const action = a as ReturnType<typeof airplanesPrevRequested>;
+
+      return concat(
+        of(
+          airplanesActions.setError(null),
+          airplanesActions.setLoading({ up: true })
+        ),
         from(
           queryAirplanesPage({
             cursor: sel.cursors(s).prev!,
@@ -140,37 +186,38 @@ export const airplanesPrevEpic: Epic<any, any, RootState> = (action$, state$) =>
               maxBuffer: MAX_BUFFER,
               hasMoreUp: res.hasPrev,
               hasMoreDown: res.hasMore,
-              prevCursor: res.prevCursor,
-              nextCursor: res.nextCursor,
+              prevCursor: res.prevCursor ?? null,
+              nextCursor: res.nextCursor ?? null,  
               total: res.total ?? null,
             })
           ),
-
           catchError((err) => {
             console.error("prev failed", err);
-            return of(airplanesActions.setLoading({ up: false }));
+            return of(airplanesActions.setError("prev failed"));
           })
         ),
         of(airplanesActions.setLoading({ up: false }))
-      )
-    )
+      );
+    })
   );
 
-export const airplanesUpdateEpic: Epic<any, any, RootState> = (action$) =>
+export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesUpdateRequested.type),
-    exhaustMap((action: ReturnType<typeof airplanesUpdateRequested>) =>
-      from(mutateUpdateAirplane(action.payload)).pipe(
+    exhaustMap((a) => {
+      const action = a as ReturnType<typeof airplanesUpdateRequested>;
+      return from(mutateUpdateAirplane(action.payload)).pipe(
         map((item) => airplanesActions.upsertFromServer(item)),
         catchError((err) => {
           console.error("update failed", err);
-          return of(airplanesActions.setLoading({}));
+          return of(airplanesActions.setError("update failed"));
         })
-      )
-    )
+      );
+    })
   );
 
-export const airplanesSubscriptionEpic: Epic = (action$) =>
+
+export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesSubStart.type),
     switchMap(() =>

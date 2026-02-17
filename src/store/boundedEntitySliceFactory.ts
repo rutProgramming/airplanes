@@ -14,6 +14,8 @@ export type BoundedViewState = {
   loading: { up: boolean; down: boolean };
   hasMore: { up: boolean; down: boolean };
   cursors: { prev: number | null; next: number | null };
+  error: string | null;
+
 };
 
 export type BoundedEntityState<T, Id extends EntityId> = EntityState<T, Id> & BoundedViewState;
@@ -35,6 +37,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
     loading: { up: false, down: false },
     hasMore: { up: false, down: true },
     cursors: { prev: null, next: null },
+    error: null
   }) as BoundedEntityState<T, Id>;
 
   function setBufferIds(state: BoundedEntityState<T, Id>, ids: readonly EntityId[]) {
@@ -92,7 +95,10 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       setTotalCount(state, action: PayloadAction<number | null>) {
         state.totalCount = action.payload;
       },
-
+      setError(state, action: PayloadAction<string | null>) {
+        state.error = action.payload;
+      }
+      ,
       resetView(state) {
         adapter.removeAll(state);
         state.bufferIds.length = 0;
@@ -101,6 +107,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.loading = { up: false, down: false };
         state.hasMore = { up: false, down: true };
         state.cursors = { prev: null, next: null };
+        state.error=null
       },
 
       applyInitialPage(
@@ -209,6 +216,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         removeManyFromBuffer(state as BoundedEntityState<T, Id>, action.payload.ids as readonly EntityId[]);
       },
     },
+
   });
 
   const selectors = adapter.getSelectors<BoundedEntityState<T, Id>>((s) => s);

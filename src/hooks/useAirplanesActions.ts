@@ -3,13 +3,14 @@ import { useDispatch } from "react-redux";
 
 import type { AppDispatch } from "../store/store";
 import { airplanesDeleteRequested, airplanesUpdateRequested } from "../store/airplanes/airplanes.epicActions";
+import type { AirplaneInput } from "../generated/graphql";
 
 export function useAirplanesActions() {
   const dispatch = useDispatch<AppDispatch>();
 
   const updateRow = useCallback(
-    (id: string, patch: Record<string, any>) => {
-      dispatch(airplanesUpdateRequested({ id, patch }));
+    (draftRow : AirplaneInput) => {
+      airplanesUpdateRequested({ input:draftRow  })
     },
     [dispatch]
   );

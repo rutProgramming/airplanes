@@ -1,9 +1,8 @@
 import { Observable } from "rxjs";
 import type { Data } from "../types/Data";
-import type { Filters } from "../types/Filters";
-import type { Sort } from "../types/Sort";
 import { createGraphqlHttpClient } from "./gqlHttp";
 import { createGraphqlWsClient, subscribe } from "./gqlWs";
+import type { AirplaneChangedSubscription, AirplanesPage, AirplanesPageQueryVariables, UpsertAirplaneMutation, UpsertAirplaneMutationVariables } from "../generated/graphql";
 
 export type PageResponse = {
   items: Data[];
@@ -22,7 +21,7 @@ const http = createGraphqlHttpClient({ url: "/graphql" });
 const wsClient = createGraphqlWsClient({ url: "ws://localhost:4000/graphql" });
 
 
-const PAGE_QUERY = /* GraphQL */ `
+const PAGE_QUERY = `
   query AirplanesPage(
     $cursor: Int!
     $limit: Int!
@@ -52,29 +51,16 @@ const PAGE_QUERY = /* GraphQL */ `
   }
 `;
 
-export async function queryAirplanesPage(vars: {
-  cursor: number;
-  limit: number;
-  direction: "down" | "up";
-  filters: Filters;
-  sort: Sort | null;
-}): Promise<PageResponse> {
-  type Resp = { airplanesPage: PageResponse };
 
-  const data = await http<Resp, any>(PAGE_QUERY, {
-    cursor: vars.cursor,
-    limit: vars.limit,
-    direction: vars.direction,
-    filters: vars.filters,
-    sort: vars.sort,
-  });
-
+export async function queryAirplanesPage(vars: AirplanesPageQueryVariables): Promise<AirplanesPage> {
+  type Resp = { airplanesPage: AirplanesPage };
+  const data = await http<Resp, AirplanesPageQueryVariables>(PAGE_QUERY, vars);
   return data.airplanesPage;
 }
 
-const UPDATE_MUTATION = /* GraphQL */ `
-  mutation UpdateAirplane($id: ID!, $patch: JSON!) {
-    updateAirplane(id: $id, patch: $patch) {
+const UPSERT_MUTATION =`
+  mutation UpsertAirplane($input: AirplaneInput!) {
+    upsertAirplane(input: $input) {
       id
       type
       capacity
@@ -83,16 +69,14 @@ const UPDATE_MUTATION = /* GraphQL */ `
   }
 `;
 
-export async function mutateUpdateAirplane(vars: {
-  id: string;
-  patch: Record<string, any>;
-}): Promise<Data> {
-  type Resp = { updateAirplane: Data };
-  const data = await http<Resp, typeof vars>(UPDATE_MUTATION, vars);
-  return data.updateAirplane;
+
+export async function mutateUpdateAirplane(vars: UpsertAirplaneMutationVariables): Promise<UpsertAirplaneMutation["upsertAirplane"]> {
+  type Resp = UpsertAirplaneMutation;
+  const data = await http<Resp, UpsertAirplaneMutationVariables>(UPSERT_MUTATION, vars);
+  return data.upsertAirplane;
 }
 
-const CHANGES_SUB = /* GraphQL */ `
+const CHANGES_SUB = `
   subscription AirplaneChanged {
     airplaneChanged {
       op
@@ -110,9 +94,8 @@ const CHANGES_SUB = /* GraphQL */ `
 export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
   return new Observable<ChangeEvent>((observer) => {
     const dispose = subscribe<
-      { airplaneChanged: { op: string; id?: string | null; item?: Data | null } },
-      Record<string, any>
-    >(
+    { airplaneChanged: AirplaneChangedSubscription["airplaneChanged"] },Record<string, any>
+>(
       wsClient,
       { query: CHANGES_SUB, variables: {} },
       {
@@ -139,6 +122,9 @@ export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
     };
   });
 }
+
+
+
 const UNIQUE_TYPES = `
   query UniqueTypes { uniqueTypes }
 `;

@@ -12,5 +12,5 @@ export const rootEpic = combineEpics(
   airplanesNextEpic,
   airplanesPrevEpic,
   airplanesUpdateEpic,
-  airplanesSubscriptionEpic
+  airplanesSubscriptionEpic,
 );
