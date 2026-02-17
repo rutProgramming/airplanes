@@ -21,6 +21,7 @@ import {
   airplanesNextRequested,
   airplanesPrevRequested,
   airplanesUpdateRequested,
+  airplanesCreateRequested,
   airplanesDeleteRequested,
   airplanesSubStart,
   airplanesSubStop,
@@ -28,7 +29,8 @@ import {
 
 import {
   mutateUpdateAirplane,
-  mutateRemoveAirplane,
+  mutateDeleteAirplane,
+  mutateCreateAirplane,
   queryAirplanesPage,
   subscribeAirplaneChanges,
 } from "../../api/airplanes.api";
@@ -59,6 +61,7 @@ type AirplanesInActions =
   | ReturnType<typeof airplanesNextRequested>
   | ReturnType<typeof airplanesPrevRequested>
   | ReturnType<typeof airplanesUpdateRequested>
+  | ReturnType<typeof airplanesCreateRequested>
   | ReturnType<typeof airplanesDeleteRequested>
   | ReturnType<typeof airplanesSubStart>
   | ReturnType<typeof airplanesSubStop>;
@@ -71,7 +74,8 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.applyInitialPage>
   | ReturnType<typeof airplanesActions.appendPage>
   | ReturnType<typeof airplanesActions.prependPage>
-  | ReturnType<typeof airplanesActions.upsertFromServer>
+  | ReturnType<typeof airplanesActions.addFromServer>
+  | ReturnType<typeof airplanesActions.updateFromServer>
   | ReturnType<typeof airplanesActions.removeFromServer>
   | ReturnType<typeof airplanesActions.removeManyFromServer>
   | ReturnType<typeof airplanesActions.setError>;
@@ -223,10 +227,25 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
     exhaustMap((a) => {
       const action = a as ReturnType<typeof airplanesUpdateRequested>;
       return from(mutateUpdateAirplane(action.payload)).pipe(
-        map((item) => airplanesActions.upsertFromServer(item)),
+        map((item) => airplanesActions.updateFromServer(item)),
         catchError((err) => {
           console.error("update failed", err);
           return of(airplanesActions.setError("update failed"));
+        })
+      );
+    })
+  );
+
+export const airplanesCreateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
+  action$.pipe(
+    ofType(airplanesCreateRequested.type),
+    exhaustMap((a) => {
+      const action = a as ReturnType<typeof airplanesCreateRequested>;
+      return from(mutateCreateAirplane(action.payload)).pipe(
+        map((item) => airplanesActions.addFromServer(item)),
+        catchError((err) => {
+          console.error("create failed", err);
+          return of(airplanesActions.setError("create failed"));
         })
       );
     })
@@ -238,7 +257,7 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
     exhaustMap((a) => {
       const action = a as ReturnType<typeof airplanesDeleteRequested>;
       const id = action.payload.id;
-      return from(mutateRemoveAirplane({ id })).pipe(
+      return from(mutateDeleteAirplane({ id })).pipe(
         map((success) => {
           if (success) return airplanesActions.removeFromServer({ id });
           return airplanesActions.setError("delete failed");
@@ -257,8 +276,10 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
         map((evt) =>
-          evt.op === "upsert"
-            ? airplanesActions.upsertFromServer(evt.item)
+          evt.op === "update"
+            ? airplanesActions.updateFromServer(evt.item as any)
+            : evt.op === "create"
+            ? airplanesActions.addFromServer(evt.item as any)
             : airplanesActions.removeFromServer({ id: evt.id })
         ),
         retryWhen((errors) =>

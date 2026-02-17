@@ -11,6 +11,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import AirplaneRowActions from "./AirplaneRowActions";
+import Button from "@mui/material/Button";
+import AddIcon from "@mui/icons-material/Add";
+import AddAirplaneDialog from "./AddAirplaneDialog";
 
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
@@ -22,6 +25,7 @@ import { useAirplanesData } from "../hooks/useAirplanesData";
 import { useAirplanesActions } from "../hooks/useAirplanesActions";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle, CircularProgressStyle } from "../styles/table.styles";
 import { queryUniqueTypes } from "../api/airplanes.api";
+import { boxStyle, filterBarStyle } from "../styles/filterBar.styles";
 
 const ROW_HEIGHT = 48;
 
@@ -56,12 +60,18 @@ export default function AirplanesTableData() {
   const { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev } =
     useAirplanesData({ filters: debouncedFilters, sort });
 
-  const { updateRow, deleteRow } = useAirplanesActions();
+  const { updateRow, createRow, deleteRow } = useAirplanesActions();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Partial<Data> | null>(null);
 
   const topSpacerHeight = topOffset * ROW_HEIGHT;
+
+  const [addOpen, setAddOpen] = useState(false);
+
+  const handleCreate = (input: any) => {
+    createRow(input);
+  };
 
   const bottomSpacerHeight = useMemo(() => {
     if (totalCount == null) return 0;
@@ -69,10 +79,10 @@ export default function AirplanesTableData() {
     return Math.max(0, (totalCount - renderedEnd) * ROW_HEIGHT);
   }, [totalCount, topOffset, rows.length]);
 
-useEffect(() => {
+  useEffect(() => {
     containerRef.current?.scrollTo({ top: 0 });
   }, [debouncedFilters, sort]);
- 
+
   useEffect(() => {
     const root = containerRef.current;
     const topEl = topSentinelRef.current;
@@ -122,7 +132,16 @@ useEffect(() => {
 
   return (
     <>
-      <FilterBar filters={filters} setFilters={setFilters} uniqueTypes={uniqueTypes} />
+      <Box sx={boxStyle}>
+        <FilterBar filters={filters} setFilters={setFilters} uniqueTypes={uniqueTypes} />
+        <Button
+          variant="contained"
+          onClick={() => setAddOpen(true)}
+          >
+          Add Airplane
+        </Button>
+          </Box>
+      <AddAirplaneDialog open={addOpen} onClose={() => setAddOpen(false)} onCreate={handleCreate} />
 
       <Paper sx={paperStyle}>
         <TableContainer ref={containerRef} sx={tableContainerStyle}>
@@ -155,9 +174,9 @@ useEffect(() => {
               </TableRow>
 
               <TableRow ref={topSentinelRef}>
-                <TableCell colSpan={columns.length + 1} 
-                style={{ height: 1, padding: 0 }}
-                 />
+                <TableCell colSpan={columns.length + 1}
+                  style={{ height: 1, padding: 0 }}
+                />
               </TableRow>
 
               {rows.length > 0 ? (
@@ -175,7 +194,7 @@ useEffect(() => {
                               const val = e.target.value;
                               setDraft((d) => ({ ...(d ?? {}), [col.id]: col.id === "type" ? val : Number(val) }));
                             }}
-                            // inputProps={{ style: { width: 100 } }}
+                          // inputProps={{ style: { width: 100 } }}
                           />
                         ) : (
                           row[col.id]
@@ -204,9 +223,9 @@ useEffect(() => {
               )}
 
               <TableRow ref={bottomSentinelRef}>
-                <TableCell colSpan={columns.length + 1} 
-                style={{ height: 1, padding: 0 }}
-                 />
+                <TableCell colSpan={columns.length + 1}
+                  style={{ height: 1, padding: 0 }}
+                />
               </TableRow>
 
               <TableRow>

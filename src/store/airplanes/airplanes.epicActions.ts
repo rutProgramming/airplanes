@@ -18,6 +18,9 @@ export const airplanesPrevRequested = createAction<{ filters: Filters; sort: Sor
 export const airplanesUpdateRequested = createAction<{ input:AirplaneInput }>(
   "airplanes/updateRequested"
 );
+export const airplanesCreateRequested = createAction<{ input:AirplaneInput }>(
+  "airplanes/createRequested"
+);
 export const airplanesDeleteRequested = createAction<{ id: string}>(
   "airplanes/deleteRequested"
 );

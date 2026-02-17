@@ -58,7 +58,8 @@ export type FiltersInput = {
 
 export type Mutation = {
   removeAirplane: Scalars['Boolean']['output'];
-  upsertAirplane: Airplane;
+  createAirplane: Airplane;
+  updateAirplane: Airplane;
 };
 
 
@@ -67,7 +68,11 @@ export type MutationRemoveAirplaneArgs = {
 };
 
 
-export type MutationUpsertAirplaneArgs = {
+
+export type MutationCreateAirplaneArgs = {
+  input: AirplaneInput;
+};
+export type MutationUpdateAirplaneArgs = {
   input: AirplaneInput;
 };
 
@@ -110,12 +115,25 @@ export type AirplanesPageQueryVariables = Exact<{
 
 export type AirplanesPageQuery = { airplanesPage: { total: number, nextCursor?: number | null, prevCursor?: number | null, hasMore: boolean, hasPrev: boolean, items: Array<{ id: string, type: string, capacity: number, size: number }> } };
 
-export type UpsertAirplaneMutationVariables = Exact<{
+
+export type CreateAirplaneMutationVariables = Exact<{
   input: AirplaneInput;
 }>;
 
+export type UpdateAirplaneMutationVariables = Exact<{
+  input: AirplaneInput;
+}>;
 
-export type UpsertAirplaneMutation = { upsertAirplane: { id: string, type: string, capacity: number, size: number } };
+export type RemoveAirplaneMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+
+export type RemoveAirplaneMutation = { id: string, removeAirplane: boolean };
+
+export type UpdateAirplaneMutation = { updateAirplane: { id: string, type: string, capacity: number, size: number } };
+export type CreateAirplaneMutation = { createAirplane: { id: string, type: string, capacity: number, size: number } };
 
 export type AirplaneChangedSubscriptionVariables = Exact<{ [key: string]: never; }>;
 

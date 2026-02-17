@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useDispatch } from "react-redux";
 
 import type { AppDispatch } from "../store/store";
-import { airplanesDeleteRequested, airplanesUpdateRequested } from "../store/airplanes/airplanes.epicActions";
+import { airplanesDeleteRequested, airplanesUpdateRequested, airplanesCreateRequested } from "../store/airplanes/airplanes.epicActions";
 import type { AirplaneInput } from "../generated/graphql";
 
 export function useAirplanesActions() {
@@ -15,11 +15,18 @@ export function useAirplanesActions() {
     [dispatch]
   );
 
+  const createRow = useCallback(
+    (draftRow: AirplaneInput) => {
+      dispatch(airplanesCreateRequested({ input: draftRow }));
+    },
+    [dispatch]
+  );
+
   const deleteRow = useCallback((id: string) => {
     dispatch(airplanesDeleteRequested({ id }));
   },
     [dispatch]
   );
 
-  return { updateRow ,deleteRow};
+  return { updateRow, createRow, deleteRow };
 }

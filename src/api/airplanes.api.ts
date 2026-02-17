@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import type { Data } from "../types/Data";
 import { createGraphqlHttpClient } from "./gqlHttp";
 import { createGraphqlWsClient, subscribe } from "./gqlWs";
-import type { AirplaneChangedSubscription, AirplanesPage, AirplanesPageQueryVariables, UpsertAirplaneMutation, UpsertAirplaneMutationVariables } from "../generated/graphql";
+import type { AirplaneChangedSubscription, AirplanesPage, AirplanesPageQueryVariables, CreateAirplaneMutation, CreateAirplaneMutationVariables, RemoveAirplaneMutation, RemoveAirplaneMutationVariables, UpdateAirplaneMutation, UpdateAirplaneMutationVariables } from "../generated/graphql";
 
 export type PageResponse = {
   items: Data[];
@@ -14,7 +14,8 @@ export type PageResponse = {
 };
 
 export type ChangeEvent =
-  | { op: "upsert"; item: Data }
+  | { op: "update"; item: Data }
+  | { op: "create"; item: Data }
   | { op: "remove"; id: string };
 
 const http = createGraphqlHttpClient({ url: "/graphql" });
@@ -58,9 +59,11 @@ export async function queryAirplanesPage(vars: AirplanesPageQueryVariables): Pro
   return data.airplanesPage;
 }
 
-const UPSERT_MUTATION =`
-  mutation UpsertAirplane($input: AirplaneInput!) {
-    upsertAirplane(input: $input) {
+
+
+const CREATE_MUTATION = `
+  mutation CreateAirplane($input: AirplaneInput!) {
+    createAirplane(input: $input) {
       id
       type
       capacity
@@ -69,24 +72,53 @@ const UPSERT_MUTATION =`
   }
 `;
 
+const UPDATE_MUTATION = `
+  mutation UpdateAirplane($input: AirplaneInput!) {
+    updateAirplane(input: $input) {
+      id
+      type
+      capacity
+      size
+    }
+  }
+`;
 
-export async function mutateUpdateAirplane(vars: UpsertAirplaneMutationVariables): Promise<UpsertAirplaneMutation["upsertAirplane"]> {
-  type Resp = UpsertAirplaneMutation;
-  const data = await http<Resp, UpsertAirplaneMutationVariables>(UPSERT_MUTATION, vars);
-  return data.upsertAirplane;
-}
-
-const REMOVE_MUTATION = `
+const DELETE_MUTATION = `
   mutation RemoveAirplane($id: ID!) {
     removeAirplane(id: $id)
   }
 `;
 
-export async function mutateRemoveAirplane(vars: { id: string }): Promise<boolean> {
-  type Resp = { removeAirplane: boolean };
-  const data = await http<Resp, { id: string }>(REMOVE_MUTATION, vars);
+export async function mutateCreateAirplane(
+  vars: CreateAirplaneMutationVariables
+): Promise<CreateAirplaneMutation["createAirplane"]> {
+  const data = await http<CreateAirplaneMutation, CreateAirplaneMutationVariables>(
+    CREATE_MUTATION,
+    vars
+  );
+  return data.createAirplane;
+}
+
+export async function mutateUpdateAirplane(
+  vars: UpdateAirplaneMutationVariables
+): Promise<UpdateAirplaneMutation["updateAirplane"]> {
+  const data = await http<UpdateAirplaneMutation, UpdateAirplaneMutationVariables>(
+    UPDATE_MUTATION,
+    vars
+  );
+  return data.updateAirplane;
+}
+export async function mutateDeleteAirplane(
+  vars: RemoveAirplaneMutationVariables
+): Promise<RemoveAirplaneMutation["removeAirplane"]> {
+  const data = await http<RemoveAirplaneMutation, RemoveAirplaneMutationVariables>(
+    DELETE_MUTATION,
+    vars
+  );
   return data.removeAirplane;
 }
+
+
 
 const CHANGES_SUB = `
   subscription AirplaneChanged {
@@ -106,23 +138,31 @@ const CHANGES_SUB = `
 export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
   return new Observable<ChangeEvent>((observer) => {
     const dispose = subscribe<
-    { airplaneChanged: AirplaneChangedSubscription["airplaneChanged"] },Record<string, any>
->(
+      { airplaneChanged: AirplaneChangedSubscription["airplaneChanged"] }, Record<string, any>
+    >(
       wsClient,
       { query: CHANGES_SUB, variables: {} },
       {
         onData: (data) => {
           const evt = data.airplaneChanged;
+          if (!evt) return;
 
-          if (evt.op === "upsert" && evt.item) {
-            observer.next({ op: "upsert", item: evt.item });
+          if (evt.op === "create" && evt.item) {
+            observer.next({ op: "create", item: evt.item });
             return;
           }
-          if ((evt.op === "remove" || evt.op === "delete") && evt.id) {
+
+          if (evt.op === "update" && evt.item) {
+            observer.next({ op: "update", item: evt.item });
+            return;
+          }
+
+          if (evt.op === "delete" && evt.id) {
             observer.next({ op: "remove", id: evt.id });
             return;
           }
-        },
+        }
+        ,
         onError: (err) => observer.error(err),
       }
     );
@@ -130,7 +170,7 @@ export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
     return () => {
       try {
         dispose();
-      } catch {}
+      } catch { }
     };
   });
 }

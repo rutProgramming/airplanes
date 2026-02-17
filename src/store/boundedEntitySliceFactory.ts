@@ -204,9 +204,19 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         if ("total" in action.payload) state.totalCount = action.payload.total ?? state.totalCount;
       },
 
-      upsertFromServer(state, action: PayloadAction<T>) {
-        adapter.upsertOne(state, action.payload);
+      addFromServer(state, action: PayloadAction<T>) {
+        const id = args.selectId(action.payload) as EntityId;
+        adapter.addOne(state, action.payload);
+        if (state.bufferIds.indexOf(id) === -1) {
+          prependIds(state as BoundedEntityState<T, Id>, [id]);
+        }
       },
+     updateFromServer(state, action: PayloadAction<T>) {
+  const id = args.selectId(action.payload) as Id;
+  adapter.updateOne(state, { id, changes: action.payload });
+},
+
+
       removeFromServer(state, action: PayloadAction<{ id: Id }>) {
         adapter.removeOne(state, action.payload.id);
         removeIdFromBuffer(state as BoundedEntityState<T, Id>, action.payload.id as EntityId);

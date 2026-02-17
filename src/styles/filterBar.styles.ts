@@ -6,9 +6,13 @@ export const filterBarStyle: SxProps<Theme> = {
   display: 'flex',
   gap: 2,
   flexWrap: 'wrap',
-  backgroundColor: '#111',
 };
+export const boxStyle: SxProps<Theme> = {
+    backgroundColor: '#111',
+    p: 2,
+    mb: 2,
 
+};
 export const formControlStyle: SxProps<Theme> = {
   color: 'white',
 };
