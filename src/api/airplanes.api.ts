@@ -76,6 +76,18 @@ export async function mutateUpdateAirplane(vars: UpsertAirplaneMutationVariables
   return data.upsertAirplane;
 }
 
+const REMOVE_MUTATION = `
+  mutation RemoveAirplane($id: ID!) {
+    removeAirplane(id: $id)
+  }
+`;
+
+export async function mutateRemoveAirplane(vars: { id: string }): Promise<boolean> {
+  type Resp = { removeAirplane: boolean };
+  const data = await http<Resp, { id: string }>(REMOVE_MUTATION, vars);
+  return data.removeAirplane;
+}
+
 const CHANGES_SUB = `
   subscription AirplaneChanged {
     airplaneChanged {

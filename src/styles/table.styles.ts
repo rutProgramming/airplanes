@@ -22,3 +22,10 @@ export const columnsTextStyle: SxProps<Theme> = {
 export const chipStyle: SxProps<Theme> = {
   ml: 1,
 };
+
+export const CircularProgressStyle: SxProps<Theme> = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  height: "100%",
+}

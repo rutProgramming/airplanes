@@ -21,12 +21,14 @@ import {
   airplanesNextRequested,
   airplanesPrevRequested,
   airplanesUpdateRequested,
+  airplanesDeleteRequested,
   airplanesSubStart,
   airplanesSubStop,
 } from "./airplanes.epicActions";
 
 import {
   mutateUpdateAirplane,
+  mutateRemoveAirplane,
   queryAirplanesPage,
   subscribeAirplaneChanges,
 } from "../../api/airplanes.api";
@@ -57,6 +59,7 @@ type AirplanesInActions =
   | ReturnType<typeof airplanesNextRequested>
   | ReturnType<typeof airplanesPrevRequested>
   | ReturnType<typeof airplanesUpdateRequested>
+  | ReturnType<typeof airplanesDeleteRequested>
   | ReturnType<typeof airplanesSubStart>
   | ReturnType<typeof airplanesSubStop>;
 
@@ -224,6 +227,25 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
         catchError((err) => {
           console.error("update failed", err);
           return of(airplanesActions.setError("update failed"));
+        })
+      );
+    })
+  );
+
+export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
+  action$.pipe(
+    ofType(airplanesDeleteRequested.type),
+    exhaustMap((a) => {
+      const action = a as ReturnType<typeof airplanesDeleteRequested>;
+      const id = action.payload.id;
+      return from(mutateRemoveAirplane({ id })).pipe(
+        map((success) => {
+          if (success) return airplanesActions.removeFromServer({ id });
+          return airplanesActions.setError("delete failed");
+        }),
+        catchError((err) => {
+          console.error("delete failed", err);
+          return of(airplanesActions.setError("delete failed"));
         })
       );
     })
