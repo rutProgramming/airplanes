@@ -12,7 +12,6 @@ import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import AirplaneRowActions from "./AirplaneRowActions";
 import Button from "@mui/material/Button";
-import AddIcon from "@mui/icons-material/Add";
 import AddAirplaneDialog from "./AddAirplaneDialog";
 
 import useDebounce from "../hooks/debounce";
@@ -25,7 +24,7 @@ import { useAirplanesData } from "../hooks/useAirplanesData";
 import { useAirplanesActions } from "../hooks/useAirplanesActions";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle, CircularProgressStyle } from "../styles/table.styles";
 import { queryUniqueTypes } from "../api/airplanes.api";
-import { boxStyle, filterBarStyle } from "../styles/filterBar.styles";
+import { boxStyle } from "../styles/filterBar.styles";
 
 const ROW_HEIGHT = 48;
 
