@@ -72,7 +72,7 @@ export default function AirplanesTableData() {
     if (totalCount == null) return 0;
     const renderedEnd = topOffset + rows.length;
     return Math.max(0, (totalCount - renderedEnd) * ROW_HEIGHT);
-  }, [totalCount, topOffset, rows.length, deleteRow]);
+  }, [totalCount, topOffset, rows.length,deleteRow]);
 
   useEffect(() => {
     containerRef.current?.scrollTo({ top: 0 });
@@ -137,7 +137,6 @@ export default function AirplanesTableData() {
         </Button>
       </Box>
       <AddAirplaneDialog open={addOpen} onClose={() => setAddOpen(false)} onCreate={handleCreate} />
-        
         
       <Paper sx={paperStyle}>
         <TableContainer ref={containerRef} sx={tableContainerStyle}>

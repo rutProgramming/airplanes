@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "../store/store";
+import type {AppDispatch } from "../store/store";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
 import {
@@ -10,17 +10,17 @@ import {
   airplanesSubStart,
   airplanesSubStop,
 } from "../store/airplanes/airplanes.epicActions";
+import {selectBufferIds, selectEntities, selectHasMore, selectLoading, selectTopOffset, selectTotal } from "../store/airplanes/airplanes.selectors";
 
 export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) {
   const dispatch = useDispatch<AppDispatch>();
 
-  const bufferIds = useSelector((s: RootState) => s.airplanes.bufferIds);
-  const entities = useSelector((s: RootState) => s.airplanes.entities);
-  const loading = useSelector((s: RootState) => s.airplanes.loading);
-  const hasMore = useSelector((s: RootState) => s.airplanes.hasMore);
-  const totalCount = useSelector((s: RootState) => s.airplanes.totalCount);
-  const topOffset = useSelector((s: RootState) => s.airplanes.topOffset);
-
+  const bufferIds = useSelector(selectBufferIds);
+  const entities = useSelector(selectEntities);
+  const loading = useSelector(selectLoading);
+  const hasMore = useSelector(selectHasMore);
+  const totalCount = useSelector(selectTotal);
+  const topOffset = useSelector(selectTopOffset);
   const bufferLen = bufferIds.length;
 
   const canLoadNext =

@@ -214,9 +214,12 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         adapter.updateOne(state, { id, changes: action.payload });
       },
 
+
       removeFromServer(state, action: PayloadAction<{ id: Id }>) {
         adapter.removeOne(state, action.payload.id);
         removeIdFromBuffer(state as BoundedEntityState<T, Id>, action.payload.id as EntityId);
+        state.totalCount = state.totalCount != null ? Math.max(0, state.totalCount - 1) : null;
+
       },
       removeManyFromServer(state, action: PayloadAction<{ ids: readonly Id[] }>) {
         adapter.removeMany(state, action.payload.ids);
