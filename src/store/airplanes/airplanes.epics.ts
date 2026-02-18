@@ -11,8 +11,7 @@ import {
   switchMap,
   takeUntil,
   withLatestFrom,
-  ignoreElements,
-  tap
+  ignoreElements
 } from "rxjs/operators";
 
 import type { RootState } from "../store";
@@ -275,9 +274,6 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
     ofType(airplanesSubStart.type),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
-        tap((evt) => {
-          console.log("SUB EVT", evt);
-        }),
         map((evt) =>
           evt.op === "update"
             ? airplanesActions.updateFromServer(evt.item)

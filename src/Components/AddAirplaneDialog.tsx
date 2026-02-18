@@ -21,11 +21,11 @@ export default function AddAirplaneDialog({ open, onClose, onCreate }: Props) {
 
   const handleCreate = () => {
     if (!id || !type) {
-      window.alert("Please provide id and type.");
+      alert("Please provide id and type.");
       return;
     }
     if (Number.isNaN(Number(capacity)) || Number.isNaN(Number(size))) {
-      window.alert("Capacity and Size must be numbers.");
+      alert("Capacity and Size must be numbers.");
       return;
     }
 
@@ -38,10 +38,10 @@ export default function AddAirplaneDialog({ open, onClose, onCreate }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} disableRestoreFocus>
       <DialogTitle>Add Airplane</DialogTitle>
       <DialogContent>
-        <TextField margin="dense" label="ID" fullWidth value={id} onChange={(e) => setId(e.target.value)} />
+        <TextField autoFocus margin="dense" label="ID" fullWidth value={id} onChange={(e) => setId(e.target.value)} />
         <TextField margin="dense" label="Type" fullWidth value={type} onChange={(e) => setType(e.target.value)} />
         <TextField
           margin="dense"

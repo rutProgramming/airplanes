@@ -13,7 +13,6 @@ export type ChangeEvent =
   | { op: "remove"; id: string };
 
 
-
 import { Observable } from "rxjs";
 import { createGraphqlHttpClient } from "./gqlHttp";
 import { createGraphqlWsClient, subscribe } from "./gqlWs";

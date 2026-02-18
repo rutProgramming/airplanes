@@ -37,12 +37,9 @@ const columns: readonly Column[] = [
 export default function AirplanesTableData() {
   const [filters, setFilters] = useState<Filters>({ types: [] });
   const debouncedFilters = useDebounce(filters);
-
   const [orderBy, setOrderBy] = useState<keyof Airplane | null>(null);
   const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
-
   const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
-
   const containerRef = useRef<HTMLDivElement | null>(null);
   const topSentinelRef = useRef<HTMLTableRowElement | null>(null);
   const bottomSentinelRef = useRef<HTMLTableRowElement | null>(null);
@@ -75,7 +72,7 @@ export default function AirplanesTableData() {
     if (totalCount == null) return 0;
     const renderedEnd = topOffset + rows.length;
     return Math.max(0, (totalCount - renderedEnd) * ROW_HEIGHT);
-  }, [totalCount, topOffset, rows.length]);
+  }, [totalCount, topOffset, rows.length, deleteRow]);
 
   useEffect(() => {
     containerRef.current?.scrollTo({ top: 0 });
@@ -135,12 +132,13 @@ export default function AirplanesTableData() {
         <Button
           variant="contained"
           onClick={() => setAddOpen(true)}
-          >
+        >
           Add Airplane
         </Button>
-          </Box>
+      </Box>
       <AddAirplaneDialog open={addOpen} onClose={() => setAddOpen(false)} onCreate={handleCreate} />
-
+        
+        
       <Paper sx={paperStyle}>
         <TableContainer ref={containerRef} sx={tableContainerStyle}>
           <Table stickyHeader>
