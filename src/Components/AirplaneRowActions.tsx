@@ -1,17 +1,16 @@
-import React from "react";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import type { Data } from "../types/Data";
+import type { Airplane } from "../generated/graphql";
 
 type Props = {
-  row: Data;
+  row: Airplane;
   editingId: string | null;
-  draft: Partial<Data> | null;
+  draft: Partial<Airplane> | null;
   setEditingId: (id: string | null) => void;
-  setDraft: (d: Partial<Data> | null) => void;
+  setDraft: (d: Partial<Airplane> | null) => void;
   updateRow: (input: { id: string; type: string; capacity: number; size: number }) => void;
   deleteRow: (id: string) => void;
 };

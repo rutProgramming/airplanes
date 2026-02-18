@@ -13,11 +13,9 @@ import TextField from "@mui/material/TextField";
 import AirplaneRowActions from "./AirplaneRowActions";
 import Button from "@mui/material/Button";
 import AddAirplaneDialog from "./AddAirplaneDialog";
-
 import useDebounce from "../hooks/debounce";
 import FilterBar from "./FilterBar";
 import type { Column } from "../types/Column";
-import type { Data } from "../types/Data";
 import type { Filters } from "../types/Filters";
 import type { Sort } from "../types/Sort";
 import { useAirplanesData } from "../hooks/useAirplanesData";
@@ -25,6 +23,7 @@ import { useAirplanesActions } from "../hooks/useAirplanesActions";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle, CircularProgressStyle } from "../styles/table.styles";
 import { queryUniqueTypes } from "../api/airplanes.api";
 import { boxStyle } from "../styles/filterBar.styles";
+import type { Airplane, AirplaneInput } from "../generated/graphql";
 
 const ROW_HEIGHT = 48;
 
@@ -39,7 +38,7 @@ export default function AirplanesTableData() {
   const [filters, setFilters] = useState<Filters>({ types: [] });
   const debouncedFilters = useDebounce(filters);
 
-  const [orderBy, setOrderBy] = useState<keyof Data | null>(null);
+  const [orderBy, setOrderBy] = useState<keyof Airplane | null>(null);
   const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
 
   const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
@@ -62,13 +61,13 @@ export default function AirplanesTableData() {
   const { updateRow, createRow, deleteRow } = useAirplanesActions();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Partial<Data> | null>(null);
+  const [draft, setDraft] = useState<Partial<Airplane> | null>(null);
 
   const topSpacerHeight = topOffset * ROW_HEIGHT;
 
   const [addOpen, setAddOpen] = useState(false);
 
-  const handleCreate = (input: any) => {
+  const handleCreate = (input: AirplaneInput) => {
     createRow(input);
   };
 
@@ -116,7 +115,7 @@ export default function AirplanesTableData() {
     };
   }, [topOffset, canLoadNext, canLoadPrev, loadNext, loadPrev]);
 
-  const handleHeaderClick = (columnId: keyof Data) => {
+  const handleHeaderClick = (columnId: keyof Airplane) => {
     if (orderBy !== columnId) {
       setOrderBy(columnId);
       setOrderDir("asc");
@@ -193,7 +192,6 @@ export default function AirplanesTableData() {
                               const val = e.target.value;
                               setDraft((d) => ({ ...(d ?? {}), [col.id]: col.id === "type" ? val : Number(val) }));
                             }}
-                          // inputProps={{ style: { width: 100 } }}
                           />
                         ) : (
                           row[col.id]

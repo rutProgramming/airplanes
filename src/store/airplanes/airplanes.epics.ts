@@ -11,10 +11,11 @@ import {
   switchMap,
   takeUntil,
   withLatestFrom,
+  ignoreElements,
+  tap
 } from "rxjs/operators";
 
 import type { RootState } from "../store";
-import type { Data } from "../../types/Data";
 
 import {
   airplanesInitRequested,
@@ -36,6 +37,7 @@ import {
 } from "../../api/airplanes.api";
 
 import { airplanesActions } from "./airplanes.slice";
+import type { Airplane } from "../../generated/graphql";
 
 const INITIAL_LIMIT = 7;
 const PAGE_LIMIT = 20;
@@ -46,7 +48,7 @@ const sel = {
   loading: (s: RootState) => s.airplanes.loading,
   topOffset: (s: RootState) => s.airplanes.topOffset,
   bufferLen: (s: RootState) => s.airplanes.bufferIds.length,
-  entityById: (s: RootState, id: string) => s.airplanes.entities[id] as Data | undefined,
+  entityById: (s: RootState, id: string) => s.airplanes.entities[id] as Airplane | undefined,
 };
 
 function nextCursorFromState(s: RootState): number {
@@ -105,7 +107,7 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
         ).pipe(
           map((res) =>
             airplanesActions.applyInitialPage({
-              items: res.items,
+              items: [...res.items],
               total: res.total ?? null,
               hasMoreDown: res.hasMore,
               hasMoreUp: res.hasPrev,
@@ -154,12 +156,12 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
         ).pipe(
           map((res) =>
             airplanesActions.appendPage({
-              items: res.items,
+              items: [...res.items],
               maxBuffer: MAX_BUFFER,
               hasMoreDown: res.hasMore,
               hasMoreUp: res.hasPrev,
-              nextCursor: res.nextCursor ?? null, 
-              prevCursor: res.prevCursor ?? null, 
+              nextCursor: res.nextCursor ?? null,
+              prevCursor: res.prevCursor ?? null,
               total: res.total ?? null,
             })
           ),
@@ -202,12 +204,12 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
         ).pipe(
           map((res) =>
             airplanesActions.prependPage({
-              items: res.items,
+              items: [...res.items],
               maxBuffer: MAX_BUFFER,
               hasMoreUp: res.hasPrev,
               hasMoreDown: res.hasMore,
-              prevCursor: res.prevCursor ?? null, 
-              nextCursor: res.nextCursor ?? null, 
+              prevCursor: res.prevCursor ?? null,
+              nextCursor: res.nextCursor ?? null,
               total: res.total ?? null,
             })
           ),
@@ -227,7 +229,7 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
     exhaustMap((a) => {
       const action = a as ReturnType<typeof airplanesUpdateRequested>;
       return from(mutateUpdateAirplane(action.payload)).pipe(
-        map((item) => airplanesActions.updateFromServer(item)),
+        ignoreElements(),
         catchError((err) => {
           console.error("update failed", err);
           return of(airplanesActions.setError("update failed"));
@@ -236,13 +238,14 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
     })
   );
 
+
 export const airplanesCreateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesCreateRequested.type),
     exhaustMap((a) => {
       const action = a as ReturnType<typeof airplanesCreateRequested>;
       return from(mutateCreateAirplane(action.payload)).pipe(
-        map((item) => airplanesActions.addFromServer(item)),
+        ignoreElements(),
         catchError((err) => {
           console.error("create failed", err);
           return of(airplanesActions.setError("create failed"));
@@ -258,10 +261,7 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
       const action = a as ReturnType<typeof airplanesDeleteRequested>;
       const id = action.payload.id;
       return from(mutateDeleteAirplane({ id })).pipe(
-        map((success) => {
-          if (success) return airplanesActions.removeFromServer({ id });
-          return airplanesActions.setError("delete failed");
-        }),
+        ignoreElements(),
         catchError((err) => {
           console.error("delete failed", err);
           return of(airplanesActions.setError("delete failed"));
@@ -275,12 +275,15 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
     ofType(airplanesSubStart.type),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
+        tap((evt) => {
+          console.log("SUB EVT", evt);
+        }),
         map((evt) =>
           evt.op === "update"
-            ? airplanesActions.updateFromServer(evt.item as any)
+            ? airplanesActions.updateFromServer(evt.item)
             : evt.op === "create"
-            ? airplanesActions.addFromServer(evt.item as any)
-            : airplanesActions.removeFromServer({ id: evt.id })
+              ? airplanesActions.addFromServer(evt.item)
+              : airplanesActions.removeFromServer({ id: evt.id })
         ),
         retryWhen((errors) =>
           errors.pipe(

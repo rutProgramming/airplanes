@@ -1,5 +1,6 @@
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
 export type Maybe<T> = T | null;
-export type InputMaybe<T> = Maybe<T>;
+export type InputMaybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -15,32 +16,35 @@ export type Scalars = {
 };
 
 export type Airplane = {
-  capacity: Scalars['Int']['output'];
-  id: Scalars['ID']['output'];
-  size: Scalars['Int']['output'];
-  type: Scalars['String']['output'];
+  readonly __typename?: 'Airplane';
+  readonly capacity: Scalars['Int']['output'];
+  readonly id: Scalars['ID']['output'];
+  readonly size: Scalars['Int']['output'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type AirplaneChangeEvent = {
-  id?: Maybe<Scalars['ID']['output']>;
-  item?: Maybe<Airplane>;
-  op: Scalars['String']['output'];
+  readonly __typename?: 'AirplaneChangeEvent';
+  readonly id?: Maybe<Scalars['ID']['output']>;
+  readonly item?: Maybe<Airplane>;
+  readonly op: Scalars['String']['output'];
 };
 
 export type AirplaneInput = {
-  capacity: Scalars['Int']['input'];
-  id: Scalars['ID']['input'];
-  size: Scalars['Int']['input'];
-  type: Scalars['String']['input'];
+  readonly capacity: Scalars['Int']['input'];
+  readonly id: Scalars['ID']['input'];
+  readonly size: Scalars['Int']['input'];
+  readonly type: Scalars['String']['input'];
 };
 
 export type AirplanesPage = {
-  hasMore: Scalars['Boolean']['output'];
-  hasPrev: Scalars['Boolean']['output'];
-  items: Array<Airplane>;
-  nextCursor?: Maybe<Scalars['Int']['output']>;
-  prevCursor?: Maybe<Scalars['Int']['output']>;
-  total: Scalars['Int']['output'];
+  readonly __typename?: 'AirplanesPage';
+  readonly hasMore: Scalars['Boolean']['output'];
+  readonly hasPrev: Scalars['Boolean']['output'];
+  readonly items: ReadonlyArray<Airplane>;
+  readonly nextCursor?: Maybe<Scalars['Int']['output']>;
+  readonly prevCursor?: Maybe<Scalars['Int']['output']>;
+  readonly total: Scalars['Int']['output'];
 };
 
 export type Direction =
@@ -48,18 +52,24 @@ export type Direction =
   | 'up';
 
 export type FiltersInput = {
-  capacityFrom?: InputMaybe<Scalars['Int']['input']>;
-  capacityTo?: InputMaybe<Scalars['Int']['input']>;
-  id?: InputMaybe<Scalars['String']['input']>;
-  sizeFrom?: InputMaybe<Scalars['Int']['input']>;
-  sizeTo?: InputMaybe<Scalars['Int']['input']>;
-  types?: InputMaybe<Array<Scalars['String']['input']>>;
+  readonly capacityFrom?: InputMaybe<Scalars['Int']['input']>;
+  readonly capacityTo?: InputMaybe<Scalars['Int']['input']>;
+  readonly id?: InputMaybe<Scalars['String']['input']>;
+  readonly sizeFrom?: InputMaybe<Scalars['Int']['input']>;
+  readonly sizeTo?: InputMaybe<Scalars['Int']['input']>;
+  readonly types?: InputMaybe<ReadonlyArray<Scalars['String']['input']>>;
 };
 
 export type Mutation = {
-  removeAirplane: Scalars['Boolean']['output'];
-  createAirplane: Airplane;
-  updateAirplane: Airplane;
+  readonly __typename?: 'Mutation';
+  readonly createAirplane: Airplane;
+  readonly removeAirplane: Scalars['Boolean']['output'];
+  readonly updateAirplane: Airplane;
+};
+
+
+export type MutationCreateAirplaneArgs = {
+  input: AirplaneInput;
 };
 
 
@@ -68,18 +78,14 @@ export type MutationRemoveAirplaneArgs = {
 };
 
 
-
-export type MutationCreateAirplaneArgs = {
-  input: AirplaneInput;
-};
 export type MutationUpdateAirplaneArgs = {
   input: AirplaneInput;
 };
 
 export type Query = {
-  airplanesPage: AirplanesPage;
-  ping: Scalars['String']['output'];
-  uniqueTypes: Array<Scalars['String']['output']>;
+  readonly __typename?: 'Query';
+  readonly airplanesPage: AirplanesPage;
+  readonly uniqueTypes: ReadonlyArray<Scalars['String']['output']>;
 };
 
 
@@ -96,12 +102,13 @@ export type SortDir =
   | 'desc';
 
 export type SortInput = {
-  dir: SortDir;
-  field: Scalars['String']['input'];
+  readonly dir: SortDir;
+  readonly field: Scalars['String']['input'];
 };
 
 export type Subscription = {
-  airplaneChanged: AirplaneChangeEvent;
+  readonly __typename?: 'Subscription';
+  readonly airplaneChanged: AirplaneChangeEvent;
 };
 
 export type AirplanesPageQueryVariables = Exact<{
@@ -113,29 +120,43 @@ export type AirplanesPageQueryVariables = Exact<{
 }>;
 
 
-export type AirplanesPageQuery = { airplanesPage: { total: number, nextCursor?: number | null, prevCursor?: number | null, hasMore: boolean, hasPrev: boolean, items: Array<{ id: string, type: string, capacity: number, size: number }> } };
-
+export type AirplanesPageQuery = { readonly __typename?: 'Query', readonly airplanesPage: { readonly __typename?: 'AirplanesPage', readonly total: number, readonly nextCursor?: number | null, readonly prevCursor?: number | null, readonly hasMore: boolean, readonly hasPrev: boolean, readonly items: ReadonlyArray<{ readonly __typename?: 'Airplane', readonly id: string, readonly type: string, readonly capacity: number, readonly size: number }> } };
 
 export type CreateAirplaneMutationVariables = Exact<{
   input: AirplaneInput;
 }>;
 
+
+export type CreateAirplaneMutation = { readonly __typename?: 'Mutation', readonly createAirplane: { readonly __typename?: 'Airplane', readonly id: string, readonly type: string, readonly capacity: number, readonly size: number } };
+
 export type UpdateAirplaneMutationVariables = Exact<{
   input: AirplaneInput;
 }>;
+
+
+export type UpdateAirplaneMutation = { readonly __typename?: 'Mutation', readonly updateAirplane: { readonly __typename?: 'Airplane', readonly id: string, readonly type: string, readonly capacity: number, readonly size: number } };
 
 export type RemoveAirplaneMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-
-export type RemoveAirplaneMutation = { id: string, removeAirplane: boolean };
-
-export type UpdateAirplaneMutation = { updateAirplane: { id: string, type: string, capacity: number, size: number } };
-export type CreateAirplaneMutation = { createAirplane: { id: string, type: string, capacity: number, size: number } };
+export type RemoveAirplaneMutation = { readonly __typename?: 'Mutation', readonly removeAirplane: boolean };
 
 export type AirplaneChangedSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
 
-export type AirplaneChangedSubscription = { airplaneChanged: { op: string, id?: string | null, item?: { id: string, type: string, capacity: number, size: number } | null } };
+export type AirplaneChangedSubscription = { readonly __typename?: 'Subscription', readonly airplaneChanged: { readonly __typename?: 'AirplaneChangeEvent', readonly op: string, readonly id?: string | null, readonly item?: { readonly __typename?: 'Airplane', readonly id: string, readonly type: string, readonly capacity: number, readonly size: number } | null } };
+
+export type UniqueTypesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UniqueTypesQuery = { readonly __typename?: 'Query', readonly uniqueTypes: ReadonlyArray<string> };
+
+
+export const AirplanesPageDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"AirplanesPage"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"limit"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"direction"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Direction"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filters"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"FiltersInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"sort"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"SortInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"airplanesPage"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"cursor"},"value":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}}},{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"Variable","name":{"kind":"Name","value":"limit"}}},{"kind":"Argument","name":{"kind":"Name","value":"direction"},"value":{"kind":"Variable","name":{"kind":"Name","value":"direction"}}},{"kind":"Argument","name":{"kind":"Name","value":"filters"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filters"}}},{"kind":"Argument","name":{"kind":"Name","value":"sort"},"value":{"kind":"Variable","name":{"kind":"Name","value":"sort"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"total"}},{"kind":"Field","name":{"kind":"Name","value":"nextCursor"}},{"kind":"Field","name":{"kind":"Name","value":"prevCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasMore"}},{"kind":"Field","name":{"kind":"Name","value":"hasPrev"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]}}]} as unknown as DocumentNode<AirplanesPageQuery, AirplanesPageQueryVariables>;
+export const CreateAirplaneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateAirplane"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"AirplaneInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createAirplane"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]} as unknown as DocumentNode<CreateAirplaneMutation, CreateAirplaneMutationVariables>;
+export const UpdateAirplaneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateAirplane"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"AirplaneInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateAirplane"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]} as unknown as DocumentNode<UpdateAirplaneMutation, UpdateAirplaneMutationVariables>;
+export const RemoveAirplaneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"RemoveAirplane"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"removeAirplane"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<RemoveAirplaneMutation, RemoveAirplaneMutationVariables>;
+export const AirplaneChangedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"subscription","name":{"kind":"Name","value":"AirplaneChanged"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"airplaneChanged"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"op"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"item"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]}}]} as unknown as DocumentNode<AirplaneChangedSubscription, AirplaneChangedSubscriptionVariables>;
+export const UniqueTypesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"UniqueTypes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"uniqueTypes"}}]}}]} as unknown as DocumentNode<UniqueTypesQuery, UniqueTypesQueryVariables>;

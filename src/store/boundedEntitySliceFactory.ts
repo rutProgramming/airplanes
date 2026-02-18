@@ -107,7 +107,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.loading = { up: false, down: false };
         state.hasMore = { up: false, down: true };
         state.cursors = { prev: null, next: null };
-        state.error=null
+        state.error = null
       },
 
       applyInitialPage(
@@ -207,15 +207,12 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       addFromServer(state, action: PayloadAction<T>) {
         const id = args.selectId(action.payload) as EntityId;
         adapter.addOne(state, action.payload);
-        if (state.bufferIds.indexOf(id) === -1) {
-          prependIds(state as BoundedEntityState<T, Id>, [id]);
-        }
+        appendIds(state as BoundedEntityState<T, Id>, [id]);
       },
-     updateFromServer(state, action: PayloadAction<T>) {
-  const id = args.selectId(action.payload) as Id;
-  adapter.updateOne(state, { id, changes: action.payload });
-},
-
+      updateFromServer(state, action: PayloadAction<T>) {
+        const id = args.selectId(action.payload) as Id;
+        adapter.updateOne(state, { id, changes: action.payload });
+      },
 
       removeFromServer(state, action: PayloadAction<{ id: Id }>) {
         adapter.removeOne(state, action.payload.id);

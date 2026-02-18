@@ -1,7 +1,7 @@
-import type { Data } from "./Data";
+import type { Airplane } from "./airplane";
 
 export type Column= {
-  id: keyof Data;
+  id: keyof Airplane;
   label: string;
   width: number;
 }

@@ -1,12 +1,20 @@
 schema: "http://localhost:4000/graphql"
-documents: "src/**/*.{ts,tsx}"
-
+documents: "src/graphql/**/*.graphql"
 generates:
   src/generated/graphql.ts:
     plugins:
       - typescript
       - typescript-operations
-
-config:
-  enumsAsTypes: true
-  skipTypename: true
+      - typed-document-node
+    config:
+      useTypeImports: true
+      enumsAsTypes: true
+      avoidOptionals: false
+      immutableTypes: true
+      maybeValue: "T | null"
+      scalars:
+        ID: string
+        String: string
+        Boolean: boolean
+        Int: number
+        Float: number

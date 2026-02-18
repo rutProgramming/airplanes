@@ -1,0 +1,36 @@
+query AirplanesPage($cursor: Int!, $limit: Int!, $direction: Direction!, $filters: FiltersInput, $sort: SortInput) {
+  airplanesPage(cursor: $cursor, limit: $limit, direction: $direction, filters: $filters, sort: $sort) {
+    total
+    nextCursor
+    prevCursor
+    hasMore
+    hasPrev
+    items { id type capacity size }
+  }
+}
+
+mutation CreateAirplane($input: AirplaneInput!) {
+  createAirplane(input: $input) { id type capacity size }
+}
+
+mutation UpdateAirplane($input: AirplaneInput!) {
+  updateAirplane(input: $input) { id type capacity size }
+}
+
+mutation RemoveAirplane($id: ID!) {
+  removeAirplane(id: $id)
+}
+
+subscription AirplaneChanged {
+  airplaneChanged {
+    op
+    id
+    item { id type capacity size }
+  }
+}
+query UniqueTypes {
+  uniqueTypes
+}
+
+
+
