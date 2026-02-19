@@ -10,9 +10,6 @@ const rootReducer = combineReducers({
   [airplanesSlice.name]: airplanesSlice.reducer,
 });
 
-export type RootState = ReturnType<typeof rootReducer>;
-export type AppDispatch = typeof store.dispatch;
-
 const epicMiddleware = createEpicMiddleware<AppAction, AppAction,RootState>();
 
 export const store = configureStore({
@@ -21,3 +18,6 @@ export const store = configureStore({
 });
 
 epicMiddleware.run(rootEpic);
+
+export type RootState = ReturnType<typeof rootReducer>;
+export type AppDispatch = typeof store.dispatch;

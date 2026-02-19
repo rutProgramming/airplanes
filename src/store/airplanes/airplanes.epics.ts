@@ -1,17 +1,17 @@
-import { ofType, type Epic } from "redux-observable";
+import { type Epic } from "redux-observable";
 import { concat, from, of } from "rxjs";
 import {
   catchError,
   delay,
   exhaustMap,
   filter,
+  ignoreElements,
   map,
   retryWhen,
   scan,
   switchMap,
   takeUntil,
   withLatestFrom,
-  ignoreElements
 } from "rxjs/operators";
 
 import type { RootState } from "../store";
@@ -47,7 +47,8 @@ const sel = {
   loading: (s: RootState) => s.airplanes.loading,
   topOffset: (s: RootState) => s.airplanes.topOffset,
   bufferLen: (s: RootState) => s.airplanes.bufferIds.length,
-  entityById: (s: RootState, id: string) => s.airplanes.entities[id] as Airplane | undefined,
+  entityById: (s: RootState, id: string) =>
+    s.airplanes.entities[id] as Airplane | undefined,
 };
 
 function nextCursorFromState(s: RootState): number {
@@ -56,6 +57,7 @@ function nextCursorFromState(s: RootState): number {
 function prevCursorFromState(s: RootState): number {
   return sel.topOffset(s);
 }
+
 
 type AirplanesInActions =
   | ReturnType<typeof airplanesInitRequested>
@@ -83,14 +85,11 @@ type AirplanesOutActions =
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
 
-
 export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    ofType(airplanesInitRequested.type),
-    switchMap((a) => {
-      const action = a as ReturnType<typeof airplanesInitRequested>;
-
-      return concat(
+    filter(airplanesInitRequested.match),
+    switchMap((action) =>
+      concat(
         of(
           airplanesActions.setError(null),
           airplanesActions.setLoading({ down: true, up: false })
@@ -123,20 +122,16 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
           })
         ),
         of(airplanesActions.setLoading({ down: false }))
-      );
-    })
+      )
+    )
   );
-
 
 export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
-    ofType(airplanesNextRequested.type),
+    filter(airplanesNextRequested.match),
     withLatestFrom(state$),
-    filter(([_, s]) => {
-      return sel.hasMore(s).down && !sel.loading(s).down;
-    }),
-    exhaustMap(([a, s]) => {
-      const action = a as ReturnType<typeof airplanesNextRequested>;
+    filter(([_, s]) => sel.hasMore(s).down && !sel.loading(s).down),
+    exhaustMap(([action, s]) => {
       const cursor = nextCursorFromState(s);
 
       return concat(
@@ -174,17 +169,15 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
     })
   );
 
-
 export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
-    ofType(airplanesPrevRequested.type),
+    filter(airplanesPrevRequested.match),
     withLatestFrom(state$),
     filter(([_, s]) => {
       if (sel.topOffset(s) === 0) return false;
       return sel.hasMore(s).up && !sel.loading(s).up;
     }),
-    exhaustMap(([a, s]) => {
-      const action = a as ReturnType<typeof airplanesPrevRequested>;
+    exhaustMap(([action, s]) => {
       const cursor = prevCursorFromState(s);
 
       return concat(
@@ -224,54 +217,49 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
 
 export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    ofType(airplanesUpdateRequested.type),
-    exhaustMap((a) => {
-      const action = a as ReturnType<typeof airplanesUpdateRequested>;
-      return from(mutateUpdateAirplane(action.payload)).pipe(
+    filter(airplanesUpdateRequested.match),
+    exhaustMap((action) =>
+      from(mutateUpdateAirplane(action.payload)).pipe(
         ignoreElements(),
         catchError((err) => {
           console.error("update failed", err);
           return of(airplanesActions.setError("update failed"));
         })
-      );
-    })
+      )
+    )
   );
-
 
 export const airplanesCreateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    ofType(airplanesCreateRequested.type),
-    exhaustMap((a) => {
-      const action = a as ReturnType<typeof airplanesCreateRequested>;
-      return from(mutateCreateAirplane(action.payload)).pipe(
+    filter(airplanesCreateRequested.match),
+    exhaustMap((action) =>
+      from(mutateCreateAirplane(action.payload)).pipe(
         ignoreElements(),
         catchError((err) => {
           console.error("create failed", err);
           return of(airplanesActions.setError("create failed"));
         })
-      );
-    })
+      )
+    )
   );
 
 export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    ofType(airplanesDeleteRequested.type),
-    exhaustMap((a) => {
-      const action = a as ReturnType<typeof airplanesDeleteRequested>;
-      const id = action.payload.id;
-      return from(mutateDeleteAirplane({ id })).pipe(
+    filter(airplanesDeleteRequested.match),
+    exhaustMap((action) =>
+      from(mutateDeleteAirplane({ id: action.payload.id })).pipe(
         ignoreElements(),
         catchError((err) => {
           console.error("delete failed", err);
           return of(airplanesActions.setError("delete failed"));
         })
-      );
-    })
+      )
+    )
   );
 
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    ofType(airplanesSubStart.type),
+    filter(airplanesSubStart.match),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
         map((evt) =>
@@ -290,7 +278,7 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
             delay(1000)
           )
         ),
-        takeUntil(action$.pipe(ofType(airplanesSubStop.type)))
+        takeUntil(action$.pipe(filter(airplanesSubStop.match)))
       )
     )
   );
