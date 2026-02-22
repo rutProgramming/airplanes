@@ -7,6 +7,7 @@ import {
   airplanesSubscriptionEpic,
   airplanesDeleteEpic,
   airplanesCreateEpic,
+  airplanesAutoRefreshEpic,
 } from "./airplanes/airplanes.epics";
 
 export const rootEpic = combineEpics(
@@ -17,4 +18,5 @@ export const rootEpic = combineEpics(
   airplanesDeleteEpic,
   airplanesCreateEpic,
   airplanesSubscriptionEpic,
+  airplanesAutoRefreshEpic
 );

@@ -6,6 +6,8 @@ import {
   type EntityState,
 } from "@reduxjs/toolkit";
 import type { Draft } from "immer";
+import type { Filters } from "../types/Filters";
+import type { Sort } from "../types/Sort";
 
 
 export type BoundedViewState<Id> = {
@@ -17,6 +19,7 @@ export type BoundedViewState<Id> = {
   hasMore: { up: boolean; down: boolean };
   cursors: { prev: number | null; next: number | null };
   error: string | null;
+  query: { filters: Filters; sort: Sort | null }
 };
 
 export type BoundedEntityState<T, Id extends EntityId> =
@@ -46,6 +49,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       hasMore: { up: false, down: true },
       cursors: { prev: null, next: null },
       error: null,
+      query: { filters: { types: [] }, sort: null },
     });
 
   type DraftState = Draft<BoundedEntityState<T, Id>>;
@@ -115,7 +119,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       setTotalCount(state, action: PayloadAction<number | null>) {
         state.totalCount = action.payload;
       },
-
+      setQuery(state, action: PayloadAction<{ filters: Filters; sort: Sort | null }>) {
+        state.query = action.payload;
+      },
       setError(state, action: PayloadAction<string | null>) {
         state.error = action.payload;
       },
@@ -129,6 +135,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.hasMore = { up: false, down: true };
         state.cursors = { prev: null, next: null };
         state.error = null;
+        state.viewDirty = false;
       },
 
 
@@ -265,16 +272,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         }
       },
 
-
-      // addFromServer(state, action: PayloadAction<T>) {
-      //   const id = args.selectId(action.payload) as DraftId;
-
-      //   adapter.upsertOne(state, action.payload);
-
-      //   if (!state.bufferIds.includes(id)) {
-      //     state.bufferIds.push(id);
-      //   }
-      // },
 
       upsertFromServer(state, action: PayloadAction<T>) {
         adapter.upsertOne(state, action.payload);

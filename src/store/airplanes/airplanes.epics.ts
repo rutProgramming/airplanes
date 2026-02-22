@@ -1,5 +1,7 @@
 import { ofType, type Epic } from "redux-observable";
 import { concat, from, of } from "rxjs";
+import { debounceTime } from "rxjs/operators";
+
 import {
   catchError,
   delay,
@@ -7,6 +9,7 @@ import {
   filter,
   ignoreElements,
   map,
+  mergeMap,
   retryWhen,
   scan,
   switchMap,
@@ -71,6 +74,7 @@ type AirplanesInActions =
   | ReturnType<typeof airplanesSubStart>
   | ReturnType<typeof airplanesSubStop>;
 
+
 type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.setLoading>
   | ReturnType<typeof airplanesActions.setHasMore>
@@ -82,7 +86,9 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.upsertFromServer>
   | ReturnType<typeof airplanesActions.removeFromServer>
   | ReturnType<typeof airplanesActions.removeManyFromServer>
-  | ReturnType<typeof airplanesActions.setError>;
+  | ReturnType<typeof airplanesActions.setError>
+  | ReturnType<typeof airplanesActions.markDirty>
+  | ReturnType<typeof airplanesActions.clearDirty>;
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
 
@@ -93,7 +99,8 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
       concat(
         of(
           airplanesActions.setError(null),
-          airplanesActions.setLoading({ down: true, up: false })
+          airplanesActions.setLoading({ down: true, up: false }),
+          airplanesActions.setQuery({ filters: action.payload.filters, sort: action.payload.sort })
         ),
         from(
           queryAirplanesPage({
@@ -104,16 +111,19 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
             sort: action.payload.sort,
           })
         ).pipe(
-          map((res) =>
-            airplanesActions.applyInitialPage({
-              items: [...res.items],
-              total: res.total ?? null,
-              hasMoreDown: res.hasMore,
-              hasMoreUp: res.hasPrev,
-              prevCursor: res.prevCursor ?? null,
-              nextCursor: res.nextCursor ?? null,
-            })
-          ),
+     mergeMap((res) =>
+    of(
+      airplanesActions.applyInitialPage({
+        items: [...res.items],
+        total: res.total ?? null,
+        hasMoreDown: res.hasMore,
+        hasMoreUp: res.hasPrev,
+        prevCursor: res.prevCursor ?? null,
+        nextCursor: res.nextCursor ?? null,
+      }),
+      airplanesActions.clearDirty()
+    )
+  ),
           catchError((err) => {
             console.error("init failed", err);
             return of(
@@ -257,27 +267,21 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
       )
     )
   );
-
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesSubStart.type),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
-        tap((evt) => console.log("change event", evt)),
         scan(
           (acc, evt) => ({
             lastV: Math.max(acc.lastV, evt.v),
             evt,
             isNew: evt.v > acc.lastV,
           }),
-          { lastV: 0, evt:{} as ChangeEvent, isNew: false }
+          { lastV: 0, evt: null as unknown as ChangeEvent, isNew: false }
         ),
         filter((x) => x.isNew),
-        map(({ evt }) =>
-          evt.op === "upsert"
-            ? airplanesActions.upsertFromServer(evt.item) 
-            : airplanesActions.removeFromServer({ id: evt.id })
-        ),
+        map(() => airplanesActions.markDirty()),
         retryWhen((errors) =>
           errors.pipe(
             scan((count, err) => {
@@ -289,5 +293,22 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
         ),
         takeUntil(action$.pipe(ofType(airplanesSubStop.type)))
       )
+    )
+  );
+
+
+
+export const airplanesAutoRefreshEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
+  action$.pipe(
+    ofType(airplanesActions.markDirty.type),
+    debounceTime(600),
+    withLatestFrom(state$),
+    filter(([, s]) => !sel.loading(s).down && !sel.loading(s).up),
+    map(([, s]) =>
+      airplanesInitRequested({
+        filters: s.airplanes.query.filters,
+        sort: s.airplanes.query.sort,
+      })
+
     )
   );
