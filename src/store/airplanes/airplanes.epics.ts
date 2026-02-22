@@ -85,7 +85,6 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.setUniqueTypes>;
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
-
 export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     filter(airplanesInitRequested.match),
@@ -137,7 +136,6 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
       )
     )
   );
-
 export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     filter(airplanesNextRequested.match),
@@ -177,7 +175,6 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
       );
     })
   );
-
 export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     filter(airplanesPrevRequested.match),
@@ -220,7 +217,6 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
       );
     })
   );
-
 export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     filter(airplanesUpdateRequested.match),
@@ -234,7 +230,6 @@ export const airplanesUpdateEpic: Epic<AppAction, AppAction, RootState> = (actio
       )
     )
   );
-
 export const airplanesCreateEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     filter(airplanesCreateRequested.match),
@@ -248,7 +243,6 @@ export const airplanesCreateEpic: Epic<AppAction, AppAction, RootState> = (actio
       )
     )
   );
-
 export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     filter(airplanesDeleteRequested.match),
@@ -262,7 +256,6 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
       )
     )
   );
-
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesSubStart.type),
@@ -291,7 +284,6 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
       )
     )
   );
-
 export const airplanesAutoRefreshEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesActions.markDirty.type),

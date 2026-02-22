@@ -33,8 +33,6 @@ export type CreateBoundedEntitySliceArgs<T, Id extends EntityId> = {
   selectId: (item: T) => Id;
 };
 
-
-
 export function createBoundedEntitySlice<T, Id extends EntityId>(
   args: CreateBoundedEntitySliceArgs<T, Id>
 ) {
@@ -59,8 +57,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
 
   type DraftState = Draft<BoundedEntityState<T, Id>>;
   type DraftId = Draft<Id>;
-
-
 
   function setBufferIds(state: DraftState, ids: readonly DraftId[]) {
     state.bufferIds.length = 0;

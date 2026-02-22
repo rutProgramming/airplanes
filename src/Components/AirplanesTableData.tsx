@@ -38,7 +38,6 @@ export default function AirplanesTableData() {
   const debouncedFilters = useDebounce(filters);
   const [orderBy, setOrderBy] = useState<keyof Airplane | null>(null);
   const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
-  // const [uniqueTypes, setUniqueTypes] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const topSentinelRef = useRef<HTMLTableRowElement | null>(null);
   const bottomSentinelRef = useRef<HTMLTableRowElement | null>(null);
@@ -51,9 +50,6 @@ export default function AirplanesTableData() {
 
   const { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev,uniqueTypes } =
     useAirplanesData({ filters: debouncedFilters, sort });
-  // useEffect(() => {
-  //   setUniqueTypes(uniqueTypes);
-  // }, [uniqueTypes]);
   const { updateRow, createRow, deleteRow } = useAirplanesActions();
 
   const [editingId, setEditingId] = useState<string | null>(null);
