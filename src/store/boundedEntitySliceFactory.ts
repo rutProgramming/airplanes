@@ -21,6 +21,7 @@ export type BoundedViewState<Id> = {
   error: string | null;
   query: { filters: Filters; sort: Sort | null }
   uniqueTypes: string[]
+  refreshInFlight: boolean;
 
 };
 
@@ -52,8 +53,8 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       cursors: { prev: null, next: null },
       error: null,
       query: { filters: { types: [] }, sort: null },
-      uniqueTypes: []
-
+      uniqueTypes: [],
+      refreshInFlight: false
     });
 
   type DraftState = Draft<BoundedEntityState<T, Id>>;
@@ -281,7 +282,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       clearDirty(state) {
         state.viewDirty = false;
       },
-
+      setRefreshInFlight(state, action: PayloadAction<boolean>) {
+        state.refreshInFlight = action.payload;
+      },
       removeManyFromServer(
         state,
         action: PayloadAction<{ ids: readonly Id[] }>

@@ -1,7 +1,5 @@
 import { ofType, type Epic } from "redux-observable";
-import { concat, from, of } from "rxjs";
-import { debounceTime } from "rxjs/operators";
-
+import { concat, from, of, forkJoin } from "rxjs";
 import {
   catchError,
   delay,
@@ -15,9 +13,9 @@ import {
   switchMap,
   takeUntil,
   withLatestFrom,
+  debounceTime,
 } from "rxjs/operators";
 
-import { forkJoin } from "rxjs";
 import type { RootState } from "../store";
 
 import {
@@ -43,7 +41,6 @@ import {
 
 import { airplanesActions } from "./airplanes.slice";
 
-
 const INITIAL_LIMIT = 7;
 const PAGE_LIMIT = 20;
 const MAX_BUFFER = 50;
@@ -53,8 +50,7 @@ const sel = {
   loading: (s: RootState) => s.airplanes.loading,
   topOffset: (s: RootState) => s.airplanes.topOffset,
   bufferLen: (s: RootState) => s.airplanes.bufferIds.length,
-  entityById: (s: RootState, id: string) =>
-    s.airplanes.entities[id],
+  entityById: (s: RootState, id: string) => s.airplanes.entities[id],
 };
 
 function nextCursorFromState(s: RootState): number {
@@ -63,7 +59,6 @@ function nextCursorFromState(s: RootState): number {
 function prevCursorFromState(s: RootState): number {
   return sel.topOffset(s);
 }
-
 
 type AirplanesInActions =
   | ReturnType<typeof airplanesInitRequested>
@@ -74,7 +69,6 @@ type AirplanesInActions =
   | ReturnType<typeof airplanesDeleteRequested>
   | ReturnType<typeof airplanesSubStart>
   | ReturnType<typeof airplanesSubStop>;
-
 
 type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.setLoading>
@@ -87,9 +81,8 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.removeManyFromServer>
   | ReturnType<typeof airplanesActions.setError>
   | ReturnType<typeof airplanesActions.markDirty>
-  | ReturnType<typeof airplanesActions.clearDirty> 
+  | ReturnType<typeof airplanesActions.clearDirty>
   | ReturnType<typeof airplanesActions.setUniqueTypes>;
-
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
 
@@ -101,7 +94,10 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
         of(
           airplanesActions.setError(null),
           airplanesActions.setLoading({ down: true, up: false }),
-          airplanesActions.setQuery({ filters: action.payload.filters, sort: action.payload.sort })
+          airplanesActions.setQuery({
+            filters: action.payload.filters,
+            sort: action.payload.sort,
+          })
         ),
         forkJoin({
           page: from(
@@ -151,10 +147,7 @@ export const airplanesNextEpic: Epic<AppAction, AppAction, RootState> = (action$
       const cursor = nextCursorFromState(s);
 
       return concat(
-        of(
-          airplanesActions.setError(null),
-          airplanesActions.setLoading({ down: true })
-        ),
+        of(airplanesActions.setError(null), airplanesActions.setLoading({ down: true })),
         from(
           queryAirplanesPage({
             cursor,
@@ -197,10 +190,7 @@ export const airplanesPrevEpic: Epic<AppAction, AppAction, RootState> = (action$
       const cursor = prevCursorFromState(s);
 
       return concat(
-        of(
-          airplanesActions.setError(null),
-          airplanesActions.setLoading({ up: true })
-        ),
+        of(airplanesActions.setError(null), airplanesActions.setLoading({ up: true })),
         from(
           queryAirplanesPage({
             cursor,
@@ -272,6 +262,7 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
       )
     )
   );
+
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
     ofType(airplanesSubStart.type),
@@ -301,19 +292,21 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
     )
   );
 
-
-
 export const airplanesAutoRefreshEpic: Epic<AppAction, AppAction, RootState> = (action$, state$) =>
   action$.pipe(
     ofType(airplanesActions.markDirty.type),
     debounceTime(600),
     withLatestFrom(state$),
-    filter(([, s]) => !sel.loading(s).down && !sel.loading(s).up),
+    filter(([, s]) => {
+      const isBusy = sel.loading(s).down || sel.loading(s).up;
+      const hasQuery = !!s.airplanes.query;
+      return hasQuery && !isBusy;
+    }),
+
     map(([, s]) =>
       airplanesInitRequested({
         filters: s.airplanes.query.filters,
         sort: s.airplanes.query.sort,
       })
-
     )
   );
