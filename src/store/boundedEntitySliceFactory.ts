@@ -9,6 +9,7 @@ import type { Draft } from "immer";
 
 
 export type BoundedViewState<Id> = {
+  viewDirty: boolean,
   bufferIds: Id[];
   topOffset: number;
   totalCount: number | null;
@@ -37,6 +38,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
 
   const initialState: BoundedEntityState<T, Id> =
     adapter.getInitialState({
+      viewDirty: false,
       bufferIds: [] as Id[],
       topOffset: 0,
       totalCount: null,
@@ -264,18 +266,25 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       },
 
 
-      addFromServer(state, action: PayloadAction<T>) {
-        const id = args.selectId(action.payload) as DraftId;
+      // addFromServer(state, action: PayloadAction<T>) {
+      //   const id = args.selectId(action.payload) as DraftId;
 
+      //   adapter.upsertOne(state, action.payload);
+
+      //   if (!state.bufferIds.includes(id)) {
+      //     state.bufferIds.push(id);
+      //   }
+      // },
+
+      upsertFromServer(state, action: PayloadAction<T>) {
         adapter.upsertOne(state, action.payload);
-
-        if (!state.bufferIds.includes(id)) {
-          state.bufferIds.push(id);
-        }
+      },
+      markDirty(state) {
+        state.viewDirty = true;
       },
 
-      updateFromServer(state, action: PayloadAction<T>) {
-        adapter.upsertOne(state, action.payload);
+      clearDirty(state) {
+        state.viewDirty = false;
       },
 
       removeFromServer(
@@ -304,6 +313,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           action.payload.ids as DraftId[]
         );
       },
+
     },
   });
 

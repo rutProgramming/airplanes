@@ -30,7 +30,8 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
 
   const canLoadPrev = topOffset > 0 && hasMore.up && !loading.up;
 
-  const rows = useMemo(() => {
+  const rows = 
+  useMemo(() => {
     return bufferIds.map((id) => entities[id]).filter(Boolean);
   }, [bufferIds, entities]);
 

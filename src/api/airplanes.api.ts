@@ -8,9 +8,9 @@ export type PageResponse = {
 };
 
 export type ChangeEvent =
-  | { op: "update"; item: Airplane }
-  | { op: "create"; item: Airplane }
-  | { op: "remove"; id: string };
+  | { v: number; op: "upsert"; item: Airplane }
+  | { v: number; op: "remove"; id: string };
+
 
 
 import { Observable } from "rxjs";
@@ -34,7 +34,6 @@ import {
   type AirplaneChangedSubscription,
   type Airplane,
   UniqueTypesDocument,
-  type UniqueTypesQuery,
 } from "../generated/graphql";
 import { print } from "graphql";
 
@@ -60,7 +59,6 @@ export async function mutateDeleteAirplane(vars: RemoveAirplaneMutationVariables
   const data = await http(RemoveAirplaneDocument, vars);
   return (data as RemoveAirplaneMutation).removeAirplane;
 }
-
 export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
   return new Observable<ChangeEvent>((observer) => {
     const dispose = subscribe<AirplaneChangedSubscription>(
@@ -69,11 +67,18 @@ export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
       {
         onData: (data) => {
           const evt = data.airplaneChanged;
+          
           if (!evt) return;
 
-          if (evt.op === "create" && evt.item) observer.next({ op: "create", item: evt.item });
-          else if (evt.op === "update" && evt.item) observer.next({ op: "update", item: evt.item });
-          else if (evt.op === "remove" && evt.id) observer.next({ op: "remove", id: evt.id });
+          if (evt.op === "upsert" && evt.item) {
+            observer.next({ v: evt.v, op: "upsert", item: evt.item });
+            return;
+          }
+
+          if (evt.op === "remove" && evt.id) {
+            observer.next({ v: evt.v, op: "remove", id: evt.id });
+            return;
+          }
         },
         onError: (err) => observer.error(err),
       }
@@ -84,7 +89,8 @@ export function subscribeAirplaneChanges(): Observable<ChangeEvent> {
     };
   });
 }
+
 export async function queryUniqueTypes(): Promise<string[]> {
   const data = await http(UniqueTypesDocument, {});
-  return [...(data as UniqueTypesQuery).uniqueTypes];
+  return [...(data).uniqueTypes];
 }

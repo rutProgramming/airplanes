@@ -1,4 +1,4 @@
-import { type Epic } from "redux-observable";
+import { ofType, type Epic } from "redux-observable";
 import { concat, from, of } from "rxjs";
 import {
   catchError,
@@ -11,6 +11,7 @@ import {
   scan,
   switchMap,
   takeUntil,
+  tap,
   withLatestFrom,
 } from "rxjs/operators";
 
@@ -33,10 +34,11 @@ import {
   mutateCreateAirplane,
   queryAirplanesPage,
   subscribeAirplaneChanges,
+  type ChangeEvent,
 } from "../../api/airplanes.api";
 
 import { airplanesActions } from "./airplanes.slice";
-import type { Airplane } from "../../generated/graphql";
+
 
 const INITIAL_LIMIT = 7;
 const PAGE_LIMIT = 20;
@@ -48,7 +50,7 @@ const sel = {
   topOffset: (s: RootState) => s.airplanes.topOffset,
   bufferLen: (s: RootState) => s.airplanes.bufferIds.length,
   entityById: (s: RootState, id: string) =>
-    s.airplanes.entities[id] as Airplane | undefined,
+    s.airplanes.entities[id],
 };
 
 function nextCursorFromState(s: RootState): number {
@@ -77,8 +79,7 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.applyInitialPage>
   | ReturnType<typeof airplanesActions.appendPage>
   | ReturnType<typeof airplanesActions.prependPage>
-  | ReturnType<typeof airplanesActions.addFromServer>
-  | ReturnType<typeof airplanesActions.updateFromServer>
+  | ReturnType<typeof airplanesActions.upsertFromServer>
   | ReturnType<typeof airplanesActions.removeFromServer>
   | ReturnType<typeof airplanesActions.removeManyFromServer>
   | ReturnType<typeof airplanesActions.setError>;
@@ -259,15 +260,23 @@ export const airplanesDeleteEpic: Epic<AppAction, AppAction, RootState> = (actio
 
 export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = (action$) =>
   action$.pipe(
-    filter(airplanesSubStart.match),
+    ofType(airplanesSubStart.type),
     switchMap(() =>
       subscribeAirplaneChanges().pipe(
-        map((evt) =>
-          evt.op === "update"
-            ? airplanesActions.updateFromServer(evt.item)
-            : evt.op === "create"
-              ? airplanesActions.addFromServer(evt.item)
-              : airplanesActions.removeFromServer({ id: evt.id })
+        tap((evt) => console.log("change event", evt)),
+        scan(
+          (acc, evt) => ({
+            lastV: Math.max(acc.lastV, evt.v),
+            evt,
+            isNew: evt.v > acc.lastV,
+          }),
+          { lastV: 0, evt:{} as ChangeEvent, isNew: false }
+        ),
+        filter((x) => x.isNew),
+        map(({ evt }) =>
+          evt.op === "upsert"
+            ? airplanesActions.upsertFromServer(evt.item) 
+            : airplanesActions.removeFromServer({ id: evt.id })
         ),
         retryWhen((errors) =>
           errors.pipe(
@@ -278,7 +287,7 @@ export const airplanesSubscriptionEpic: Epic<AppAction, AppAction, RootState> = 
             delay(1000)
           )
         ),
-        takeUntil(action$.pipe(filter(airplanesSubStop.match)))
+        takeUntil(action$.pipe(ofType(airplanesSubStop.type)))
       )
     )
   );

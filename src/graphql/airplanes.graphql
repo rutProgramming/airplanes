@@ -24,6 +24,7 @@ mutation RemoveAirplane($id: ID!) {
 subscription AirplaneChanged {
   airplaneChanged {
     op
+    v
     id
     item { id type capacity size }
   }
