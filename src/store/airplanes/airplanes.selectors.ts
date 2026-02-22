@@ -9,6 +9,7 @@ export const selectTotal = (s: RootState) => s.airplanes.totalCount;
 export const selectHasMore = (s: RootState) => s.airplanes.hasMore;
 export const selectLoading = (s: RootState) => s.airplanes.loading;
 export const selectCursors = (s: RootState) => s.airplanes.cursors;
+export const selectUniqueTypes = (s: RootState) => s.airplanes.uniqueTypes;
 
 
 export const selectRowsInBuffer = (s: RootState) => {

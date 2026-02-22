@@ -10,7 +10,7 @@ import {
   airplanesSubStart,
   airplanesSubStop,
 } from "../store/airplanes/airplanes.epicActions";
-import {selectBufferIds, selectEntities, selectHasMore, selectLoading, selectTopOffset, selectTotal } from "../store/airplanes/airplanes.selectors";
+import {selectBufferIds, selectEntities, selectHasMore, selectLoading, selectTopOffset, selectTotal, selectUniqueTypes } from "../store/airplanes/airplanes.selectors";
 
 export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -21,7 +21,9 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
   const hasMore = useSelector(selectHasMore);
   const totalCount = useSelector(selectTotal);
   const topOffset = useSelector(selectTopOffset);
+  const uniqueTypes = useSelector(selectUniqueTypes);
   const bufferLen = bufferIds.length;
+  
 
   const canLoadNext =
     hasMore.down &&
@@ -54,5 +56,5 @@ export function useAirplanesData(args: { filters: Filters; sort: Sort | null }) 
     dispatch(airplanesPrevRequested({ filters: args.filters, sort: args.sort }));
   }, [dispatch, args.filters, args.sort]);
 
-  return { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev };
+  return { rows, loading, totalCount, topOffset, loadNext, loadPrev, canLoadNext, canLoadPrev,uniqueTypes };
 }

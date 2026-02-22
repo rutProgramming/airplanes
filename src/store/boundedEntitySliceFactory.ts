@@ -20,6 +20,8 @@ export type BoundedViewState<Id> = {
   cursors: { prev: number | null; next: number | null };
   error: string | null;
   query: { filters: Filters; sort: Sort | null }
+  uniqueTypes: string[]
+
 };
 
 export type BoundedEntityState<T, Id extends EntityId> =
@@ -50,6 +52,8 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       cursors: { prev: null, next: null },
       error: null,
       query: { filters: { types: [] }, sort: null },
+      uniqueTypes: []
+
     });
 
   type DraftState = Draft<BoundedEntityState<T, Id>>;
@@ -137,7 +141,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.error = null;
         state.viewDirty = false;
       },
-
+      setUniqueTypes(state, action: PayloadAction<string[]>) {
+        state.uniqueTypes = action.payload;
+      },
 
       applyInitialPage(
         state,
@@ -273,9 +279,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       },
 
 
-      upsertFromServer(state, action: PayloadAction<T>) {
-        adapter.upsertOne(state, action.payload);
-      },
+      // upsertFromServer(state, action: PayloadAction<T>) {
+      //   adapter.upsertOne(state, action.payload);
+      // },
       markDirty(state) {
         state.viewDirty = true;
       },
@@ -284,21 +290,21 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.viewDirty = false;
       },
 
-      removeFromServer(
-        state,
-        action: PayloadAction<{ id: Id }>
-      ) {
-        adapter.removeOne(state, action.payload.id);
-        removeIdFromBuffer(
-          state,
-          action.payload.id as DraftId
-        );
+      // removeFromServer(
+      //   state,
+      //   action: PayloadAction<{ id: Id }>
+      // ) {
+      //   adapter.removeOne(state, action.payload.id);
+      //   removeIdFromBuffer(
+      //     state,
+      //     action.payload.id as DraftId
+      //   );
 
-        state.totalCount =
-          state.totalCount != null
-            ? Math.max(0, state.totalCount - 1)
-            : null;
-      },
+      //   state.totalCount =
+      //     state.totalCount != null
+      //       ? Math.max(0, state.totalCount - 1)
+      //       : null;
+      // },
 
       removeManyFromServer(
         state,

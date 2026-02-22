@@ -14,10 +14,10 @@ import {
   scan,
   switchMap,
   takeUntil,
-  tap,
   withLatestFrom,
 } from "rxjs/operators";
 
+import { forkJoin } from "rxjs";
 import type { RootState } from "../store";
 
 import {
@@ -38,6 +38,7 @@ import {
   queryAirplanesPage,
   subscribeAirplaneChanges,
   type ChangeEvent,
+  queryUniqueTypes,
 } from "../../api/airplanes.api";
 
 import { airplanesActions } from "./airplanes.slice";
@@ -83,12 +84,11 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.applyInitialPage>
   | ReturnType<typeof airplanesActions.appendPage>
   | ReturnType<typeof airplanesActions.prependPage>
-  | ReturnType<typeof airplanesActions.upsertFromServer>
-  | ReturnType<typeof airplanesActions.removeFromServer>
   | ReturnType<typeof airplanesActions.removeManyFromServer>
   | ReturnType<typeof airplanesActions.setError>
   | ReturnType<typeof airplanesActions.markDirty>
-  | ReturnType<typeof airplanesActions.clearDirty>;
+  | ReturnType<typeof airplanesActions.clearDirty>  | ReturnType<typeof airplanesActions.setUniqueTypes>;
+
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
 
@@ -102,28 +102,32 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
           airplanesActions.setLoading({ down: true, up: false }),
           airplanesActions.setQuery({ filters: action.payload.filters, sort: action.payload.sort })
         ),
-        from(
-          queryAirplanesPage({
-            cursor: 0,
-            limit: INITIAL_LIMIT,
-            direction: "down",
-            filters: action.payload.filters,
-            sort: action.payload.sort,
-          })
-        ).pipe(
-     mergeMap((res) =>
-    of(
-      airplanesActions.applyInitialPage({
-        items: [...res.items],
-        total: res.total ?? null,
-        hasMoreDown: res.hasMore,
-        hasMoreUp: res.hasPrev,
-        prevCursor: res.prevCursor ?? null,
-        nextCursor: res.nextCursor ?? null,
-      }),
-      airplanesActions.clearDirty()
-    )
-  ),
+        forkJoin({
+          page: from(
+            queryAirplanesPage({
+              cursor: 0,
+              limit: INITIAL_LIMIT,
+              direction: "down",
+              filters: action.payload.filters,
+              sort: action.payload.sort,
+            })
+          ),
+          types: from( queryUniqueTypes()),
+        }).pipe(
+          mergeMap(({ page, types }) =>
+            of(
+              airplanesActions.applyInitialPage({
+                items: [...page.items],
+                total: page.total ?? null,
+                hasMoreDown: page.hasMore,
+                hasMoreUp: page.hasPrev,
+                prevCursor: page.prevCursor ?? null,
+                nextCursor: page.nextCursor ?? null,
+              }),
+              airplanesActions.setUniqueTypes(types),
+              airplanesActions.clearDirty()
+            )
+          ),
           catchError((err) => {
             console.error("init failed", err);
             return of(
