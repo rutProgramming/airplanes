@@ -87,7 +87,8 @@ type AirplanesOutActions =
   | ReturnType<typeof airplanesActions.removeManyFromServer>
   | ReturnType<typeof airplanesActions.setError>
   | ReturnType<typeof airplanesActions.markDirty>
-  | ReturnType<typeof airplanesActions.clearDirty>  | ReturnType<typeof airplanesActions.setUniqueTypes>;
+  | ReturnType<typeof airplanesActions.clearDirty> 
+  | ReturnType<typeof airplanesActions.setUniqueTypes>;
 
 
 export type AppAction = AirplanesInActions | AirplanesOutActions;
@@ -112,7 +113,7 @@ export const airplanesInitEpic: Epic<AppAction, AppAction, RootState> = (action$
               sort: action.payload.sort,
             })
           ),
-          types: from( queryUniqueTypes()),
+          types: from(queryUniqueTypes()),
         }).pipe(
           mergeMap(({ page, types }) =>
             of(

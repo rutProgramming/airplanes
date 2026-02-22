@@ -85,11 +85,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
     return state.bufferIds.splice(start, count);
   }
 
-  function removeIdFromBuffer(state: DraftState, id: DraftId) {
-    const idx = state.bufferIds.indexOf(id);
-    if (idx !== -1) state.bufferIds.splice(idx, 1);
-  }
-
   function removeManyFromBuffer(state: DraftState, ids: readonly DraftId[]) {
     if (ids.length === 0) return;
     const removeSet = new Set<DraftId>(ids);
@@ -141,6 +136,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.error = null;
         state.viewDirty = false;
       },
+
       setUniqueTypes(state, action: PayloadAction<string[]>) {
         state.uniqueTypes = action.payload;
       },
@@ -278,10 +274,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         }
       },
 
-
-      // upsertFromServer(state, action: PayloadAction<T>) {
-      //   adapter.upsertOne(state, action.payload);
-      // },
       markDirty(state) {
         state.viewDirty = true;
       },
@@ -289,22 +281,6 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       clearDirty(state) {
         state.viewDirty = false;
       },
-
-      // removeFromServer(
-      //   state,
-      //   action: PayloadAction<{ id: Id }>
-      // ) {
-      //   adapter.removeOne(state, action.payload.id);
-      //   removeIdFromBuffer(
-      //     state,
-      //     action.payload.id as DraftId
-      //   );
-
-      //   state.totalCount =
-      //     state.totalCount != null
-      //       ? Math.max(0, state.totalCount - 1)
-      //       : null;
-      // },
 
       removeManyFromServer(
         state,

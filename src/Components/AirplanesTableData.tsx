@@ -21,7 +21,6 @@ import type { Sort } from "../types/Sort";
 import { useAirplanesData } from "../hooks/useAirplanesData";
 import { useAirplanesActions } from "../hooks/useAirplanesActions";
 import { paperStyle, tableContainerStyle, columnsTextStyle, chipStyle, CircularProgressStyle } from "../styles/table.styles";
-import { queryUniqueTypes } from "../api/airplanes.api";
 import { boxStyle } from "../styles/filterBar.styles";
 import type { Airplane, AirplaneInput } from "../generated/graphql";
 
