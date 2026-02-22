@@ -1,5 +1,5 @@
 import type { Airplane } from "../../generated/graphql";
-import { createBoundedEntitySlice } from "../boundedEntitySliceFactory";
+import { createBoundedEntitySlice } from "../boundedEntity/boundedEntitySliceFactory";
 
 export const airplanesSlice = createBoundedEntitySlice<Airplane, string>({
   name: "airplanes",

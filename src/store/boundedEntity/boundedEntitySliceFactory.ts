@@ -6,36 +6,38 @@ import {
   type EntityState,
 } from "@reduxjs/toolkit";
 import type { Draft } from "immer";
-import type { Filters } from "../types/Filters";
-import type { Sort } from "../types/Sort";
 
+import type {
+  BoundedViewState,
+} from "./boundedEntity.buffer";
 
-export type BoundedViewState<Id> = {
-  viewDirty: boolean,
-  bufferIds: Id[];
-  topOffset: number;
-  totalCount: number | null;
-  loading: { up: boolean; down: boolean };
-  hasMore: { up: boolean; down: boolean };
-  cursors: { prev: number | null; next: number | null };
-  error: string | null;
-  query: { filters: Filters; sort: Sort | null }
-  uniqueTypes: string[]
-  refreshInFlight: boolean;
+import {
+  setBufferIds,
+  appendIds,
+  prependIds,
+  trimFromTop,
+  trimFromBottom,
+  removeManyFromBuffer,
+} from "./boundedEntity.buffer";
+import type { Filters } from "../../types/Filters";
+import type { Sort } from "../../types/Sort";
 
-};
+export type BoundedEntityState<
+  T,
+  Id extends EntityId
+> = EntityState<T, Id> & BoundedViewState<Id>;
 
-export type BoundedEntityState<T, Id extends EntityId> =
-  EntityState<T, Id> & BoundedViewState<Id>;
-
-export type CreateBoundedEntitySliceArgs<T, Id extends EntityId> = {
+export type CreateBoundedEntitySliceArgs<
+  T,
+  Id extends EntityId
+> = {
   name: string;
   selectId: (item: T) => Id;
 };
-
-export function createBoundedEntitySlice<T, Id extends EntityId>(
-  args: CreateBoundedEntitySliceArgs<T, Id>
-) {
+export function createBoundedEntitySlice<
+  T,
+  Id extends EntityId
+>(args: CreateBoundedEntitySliceArgs<T, Id>) {
   const adapter = createEntityAdapter<T, Id>({
     selectId: args.selectId,
   });
@@ -52,52 +54,15 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       error: null,
       query: { filters: { types: [] }, sort: null },
       uniqueTypes: [],
-      refreshInFlight: false
+      refreshInFlight: false,
     });
 
-  type DraftState = Draft<BoundedEntityState<T, Id>>;
   type DraftId = Draft<Id>;
-
-  function setBufferIds(state: DraftState, ids: readonly DraftId[]) {
-    state.bufferIds.length = 0;
-    state.bufferIds.push(...ids);
-  }
-
-  function appendIds(state: DraftState, ids: readonly DraftId[]) {
-    state.bufferIds.push(...ids);
-  }
-
-  function prependIds(state: DraftState, ids: readonly DraftId[]) {
-    state.bufferIds.unshift(...ids);
-  }
-
-  function trimFromTop(state: DraftState, count: number): DraftId[] {
-    if (count <= 0) return [];
-    return state.bufferIds.splice(0, count);
-  }
-
-  function trimFromBottom(state: DraftState, count: number): DraftId[] {
-    if (count <= 0) return [];
-    const start = Math.max(0, state.bufferIds.length - count);
-    return state.bufferIds.splice(start, count);
-  }
-
-  function removeManyFromBuffer(state: DraftState, ids: readonly DraftId[]) {
-    if (ids.length === 0) return;
-    const removeSet = new Set<DraftId>(ids);
-    for (let i = state.bufferIds.length - 1; i >= 0; i--) {
-      if (removeSet.has(state.bufferIds[i])) {
-        state.bufferIds.splice(i, 1);
-      }
-    }
-  }
-
 
   const slice = createSlice({
     name: args.name,
     initialState,
     reducers: {
-
       setLoading(
         state,
         action: PayloadAction<Partial<BoundedViewState<Id>["loading"]>>
@@ -115,7 +80,8 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       setTotalCount(state, action: PayloadAction<number | null>) {
         state.totalCount = action.payload;
       },
-      setQuery(state, action: PayloadAction<{ filters: Filters; sort: Sort | null }>) {
+
+    setQuery(state, action: PayloadAction<{ filters: Filters; sort: Sort | null }>) {
         state.query = action.payload;
       },
       setError(state, action: PayloadAction<string | null>) {
@@ -124,6 +90,7 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
 
       resetView(state) {
         adapter.removeAll(state);
+
         state.bufferIds.length = 0;
         state.topOffset = 0;
         state.totalCount = null;
@@ -131,7 +98,9 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.hasMore = { up: false, down: true };
         state.cursors = { prev: null, next: null };
         state.error = null;
+
         state.viewDirty = false;
+        state.refreshInFlight = false;
       },
 
       setUniqueTypes(state, action: PayloadAction<string[]>) {
@@ -151,18 +120,17 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       ) {
         adapter.setAll(state, action.payload.items);
 
-        const ids = action.payload.items.map(
-          args.selectId
-        ) as DraftId[];
-
-        setBufferIds(state, ids);
+        const ids = action.payload.items.map(args.selectId) as DraftId[];
+        setBufferIds(state as any, ids);
 
         state.topOffset = 0;
         state.totalCount = action.payload.total;
+
         state.hasMore = {
           up: action.payload.hasMoreUp,
           down: action.payload.hasMoreDown,
         };
+
         state.cursors.prev = action.payload.prevCursor;
         state.cursors.next = action.payload.nextCursor;
       },
@@ -179,25 +147,17 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           total?: number | null;
         }>
       ) {
-        const {
-          items,
-          maxBuffer,
-          hasMoreDown,
-          hasMoreUp,
-          nextCursor,
-        } = action.payload;
+        const { items, maxBuffer, hasMoreDown, hasMoreUp, nextCursor } =
+          action.payload;
 
         adapter.upsertMany(state, items);
 
-        const newIds = items.map(
-          args.selectId
-        ) as DraftId[];
-
-        appendIds(state, newIds);
+        const newIds = items.map(args.selectId) as DraftId[];
+        appendIds(state as any, newIds);
 
         if (state.bufferIds.length > maxBuffer) {
           const overflow = state.bufferIds.length - maxBuffer;
-          const removed = trimFromTop(state, overflow);
+          const removed = trimFromTop(state as any, overflow);
           state.topOffset += overflow;
           adapter.removeMany(state, removed as Id[]);
         }
@@ -207,13 +167,10 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
         state.cursors.next = nextCursor;
 
         if (action.payload.prevCursor !== undefined) {
-          state.cursors.prev =
-            action.payload.prevCursor ?? state.cursors.prev;
+          state.cursors.prev = action.payload.prevCursor ?? state.cursors.prev;
         }
-
         if (action.payload.total !== undefined) {
-          state.totalCount =
-            action.payload.total ?? state.totalCount;
+          state.totalCount = action.payload.total ?? state.totalCount;
         }
       },
 
@@ -229,45 +186,31 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
           total?: number | null;
         }>
       ) {
-        const {
-          items,
-          maxBuffer,
-          hasMoreUp,
-          hasMoreDown,
-          prevCursor,
-        } = action.payload;
+        const { items, maxBuffer, hasMoreUp, hasMoreDown, prevCursor } =
+          action.payload;
 
         adapter.upsertMany(state, items);
 
-        const newIds = items.map(
-          args.selectId
-        ) as DraftId[];
-
-        prependIds(state, newIds);
+        const newIds = items.map(args.selectId) as DraftId[];
+        prependIds(state as any, newIds);
 
         if (state.bufferIds.length > maxBuffer) {
           const overflow = state.bufferIds.length - maxBuffer;
-          const removed = trimFromBottom(state, overflow);
+          const removed = trimFromBottom(state as any, overflow);
           adapter.removeMany(state, removed as Id[]);
         }
 
-        state.topOffset = Math.max(
-          0,
-          state.topOffset - newIds.length
-        );
+        state.topOffset = Math.max(0, state.topOffset - newIds.length);
 
         state.hasMore.up = hasMoreUp;
         state.hasMore.down = hasMoreDown;
         state.cursors.prev = prevCursor;
 
         if (action.payload.nextCursor !== undefined) {
-          state.cursors.next =
-            action.payload.nextCursor ?? state.cursors.next;
+          state.cursors.next = action.payload.nextCursor ?? state.cursors.next;
         }
-
         if (action.payload.total !== undefined) {
-          state.totalCount =
-            action.payload.total ?? state.totalCount;
+          state.totalCount = action.payload.total ?? state.totalCount;
         }
       },
 
@@ -278,27 +221,21 @@ export function createBoundedEntitySlice<T, Id extends EntityId>(
       clearDirty(state) {
         state.viewDirty = false;
       },
+
       setRefreshInFlight(state, action: PayloadAction<boolean>) {
         state.refreshInFlight = action.payload;
       },
-      removeManyFromServer(
-        state,
-        action: PayloadAction<{ ids: readonly Id[] }>
-      ) {
-        adapter.removeMany(state, action.payload.ids);
-        removeManyFromBuffer(
-          state,
-          action.payload.ids as DraftId[]
-        );
-      },
 
+      removeManyFromServer(state, action: PayloadAction<{ ids: readonly Id[] }>) {
+        adapter.removeMany(state, action.payload.ids);
+        removeManyFromBuffer(state as any, action.payload.ids as DraftId[]);
+      },
     },
   });
 
-  const selectors =
-    adapter.getSelectors<BoundedEntityState<T, Id>>(
-      (s) => s
-    );
+  const selectors = adapter.getSelectors<BoundedEntityState<T, Id>>(
+    (s) => s
+  );
 
   return {
     name: args.name,

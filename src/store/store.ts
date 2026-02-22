@@ -1,10 +1,9 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
 
-
 import { airplanesSlice } from "./airplanes/airplanes.slice";
 import { rootEpic } from "./rootEpic";
-import type { AppAction } from "./airplanes/airplanes.epics";
+import type { AppAction } from "./airplanes/epics/airplanes.epics.types";
 
 const rootReducer = combineReducers({
   [airplanesSlice.name]: airplanesSlice.reducer,
